@@ -1,270 +1,247 @@
 <template>
   <div class="home-container">
-    <el-carousel :interval="5000" type="card" height="400px" class="carousel">
-      <el-carousel-item v-for="item in carouselItems" :key="item.id">
-        <div class="carousel-item">
-          <h3>{{ item.title }}</h3>
-          <p>{{ item.description }}</p>
-        </div>
-      </el-carousel-item>
-    </el-carousel>
-    
-    <div class="features">
-      <el-row :gutter="20">
-        <el-col :span="6" v-for="feature in features" :key="feature.id" class="feature-card">
-          <el-card shadow="hover">
-            <div class="feature-icon">
-              <el-icon v-if="feature.icon === 'Reading'">Reading</el-icon>
-              <el-icon v-else-if="feature.icon === 'Edit'">Edit</el-icon>
-              <el-icon v-else-if="feature.icon === 'CollectionTag'">CollectionTag</el-icon>
-              <el-icon v-else-if="feature.icon === 'Timer'">Timer</el-icon>
-              <el-icon v-else-if="feature.icon === 'WarningFilled'">WarningFilled</el-icon>
-              <el-icon v-else-if="feature.icon === 'Document'">Document</el-icon>
-            </div>
-            <h3>{{ feature.title }}</h3>
-            <p>{{ feature.description }}</p>
-            <el-button type="primary" @click="navigateTo(feature.path)">{{ feature.buttonText }}</el-button>
-          </el-card>
-        </el-col>
-      </el-row>
+    <!-- 欢迎区域 -->
+    <div class="welcome-section bg-gradient bg-primary text-white rounded-lg p-5 mb-5">
+      <h2 class="display-5 fw-bold mb-3">欢迎使用AI知识学习与智能测评系统</h2>
+      <p class="lead mb-4">
+        基于人工智能技术，为您提供个性化的学习体验和智能测评服务
+      </p>
+      <div class="d-flex gap-3">
+        <router-link to="/study" class="btn btn-light btn-lg text-primary fw-bold">
+          开始学习
+        </router-link>
+        <router-link to="/exam" class="btn btn-outline-light btn-lg">
+          模拟考试
+        </router-link>
+      </div>
     </div>
-    
-    <div class="learning-path">
-      <h2>AI学习路径</h2>
-      <el-timeline>
-        <el-timeline-item
-          v-for="(item, index) in learningPath"
-          :key="index"
-          :timestamp="item.stage"
-          placement="top"
-        >
-          <el-card>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.description }}</p>
-            <el-button type="primary" @click="navigateTo(item.path)">开始学习</el-button>
-          </el-card>
-        </el-timeline-item>
-      </el-timeline>
+
+    <!-- 功能模块 -->
+    <div class="features-section mb-5">
+      <h3 class="h4 fw-bold mb-4">核心功能</h3>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">📚</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">学习中心</h4>
+              <p class="card-text text-muted">
+                AI知识体系，按学习路径分层，方便您系统学习。
+              </p>
+              <router-link to="/study" class="btn btn-primary btn-sm mt-3">
+                进入学习
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">✏️</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">专项练习</h4>
+              <p class="card-text text-muted">
+                针对不同知识点的专项练习，巩固学习成果。
+              </p>
+              <router-link to="/practice" class="btn btn-primary btn-sm mt-3">
+                开始练习
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">📝</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">模拟考试</h4>
+              <p class="card-text text-muted">
+                真实模拟考试环境，检验学习效果。
+              </p>
+              <router-link to="/exam" class="btn btn-primary btn-sm mt-3">
+                开始考试
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">❌</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">错题集</h4>
+              <p class="card-text text-muted">
+                自动收集错题，针对性复习，避免重复错误。
+              </p>
+              <router-link to="/wrong" class="btn btn-primary btn-sm mt-3">
+                查看错题
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">⭐</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">专题训练</h4>
+              <p class="card-text text-muted">
+                针对特定领域的深度训练，提升专业技能。
+              </p>
+              <router-link to="/special" class="btn btn-primary btn-sm mt-3">
+                进入训练
+              </router-link>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="icon-wrapper bg-primary bg-opacity-10 rounded-full w-12 h-12 flex items-center justify-center mb-4">
+                <span class="text-primary text-2xl">📊</span>
+              </div>
+              <h4 class="card-title fw-bold mb-2">学习报告</h4>
+              <p class="card-text text-muted">
+                AI分析学习数据，生成个性化学习报告。
+              </p>
+              <router-link to="/report" class="btn btn-primary btn-sm mt-3">
+                查看报告
+              </router-link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 学习统计 -->
+    <div class="stats-section mb-5">
+      <h3 class="h4 fw-bold mb-4">学习统计</h3>
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+        <div class="col">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="text-primary text-3xl mb-2">📚</div>
+              <h5 class="card-title fw-bold mb-1">学习时长</h5>
+              <p class="card-text text-muted">12.5 小时</p>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="text-primary text-3xl mb-2">✏️</div>
+              <h5 class="card-title fw-bold mb-1">已做题目</h5>
+              <p class="card-text text-muted">128 题</p>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="text-primary text-3xl mb-2">✅</div>
+              <h5 class="card-title fw-bold mb-1">正确率</h5>
+              <p class="card-text text-muted">78%</p>
+            </div>
+          </div>
+        </div>
+        <div class="col">
+          <div class="card text-center h-100">
+            <div class="card-body">
+              <div class="text-primary text-3xl mb-2">🏆</div>
+              <h5 class="card-title fw-bold mb-1">学习等级</h5>
+              <p class="card-text text-muted">Lv.3</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 推荐学习 -->
+    <div class="recommendation-section">
+      <h3 class="h4 fw-bold mb-4">推荐学习</h3>
+      <div class="card">
+        <div class="card-body">
+          <h5 class="card-title fw-bold mb-3">基于您的学习情况，推荐以下内容</h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="fw-bold">机器学习基础</h6>
+                <p class="text-muted small">掌握机器学习的核心概念和算法</p>
+              </div>
+              <router-link to="/study" class="btn btn-sm btn-outline-primary">
+                开始学习
+              </router-link>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="fw-bold">深度学习进阶</h6>
+                <p class="text-muted small">深入理解神经网络和深度学习模型</p>
+              </div>
+              <router-link to="/study" class="btn btn-sm btn-outline-primary">
+                开始学习
+              </router-link>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="fw-bold">自然语言处理</h6>
+                <p class="text-muted small">学习NLP的关键技术和应用</p>
+              </div>
+              <router-link to="/study" class="btn btn-sm btn-outline-primary">
+                开始学习
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { Reading, Edit, Timer, WarningFilled, Document, CollectionTag } from '@element-plus/icons-vue'
-
-const router = useRouter()
-
-const carouselItems = [
-  {
-    id: 1,
-    title: 'AI知识学习与智能测评系统',
-    description: '专为AI初学者打造的在线学习平台，提供智能出题、在线答题、自动批改和学习报告等功能。'
-  },
-  {
-    id: 2,
-    title: 'AI学习路径',
-    description: '从AI基础概念到深度学习、大模型应用，为您提供完整的AI学习路径。'
-  },
-  {
-    id: 3,
-    title: '智能测评',
-    description: 'AI自动出题，在线答题，即时批改，帮助您快速掌握AI知识。'
-  }
-]
-
-const features = [
-  {
-    id: 1,
-    icon: 'Reading',
-    title: '学习中心',
-    description: 'AI知识体系，按学习路径分层，方便您系统学习。',
-    path: '/study',
-    buttonText: '进入学习'
-  },
-  {
-    id: 2,
-    icon: 'Edit',
-    title: '章节刷题',
-    description: '按章节练习，即时显示解析，巩固知识点。',
-    path: '/practice',
-    buttonText: '开始练习'
-  },
-  {
-    id: 3,
-    icon: 'CollectionTag',
-    title: '专项训练',
-    description: '针对特定知识点进行强化训练，提高学习效率。',
-    path: '/special',
-    buttonText: '开始训练'
-  },
-  {
-    id: 4,
-    icon: 'Timer',
-    title: '模拟考试',
-    description: '模拟真实考试环境，检验学习成果。',
-    path: '/exam',
-    buttonText: '开始考试'
-  },
-  {
-    id: 5,
-    icon: 'WarningFilled',
-    title: '错题本',
-    description: '自动收录错题，提供同类题强化训练。',
-    path: '/wrong',
-    buttonText: '查看错题'
-  },
-  {
-    id: 6,
-    icon: 'Document',
-    title: '学习报告',
-    description: '生成学习报告，分析薄弱知识点，推荐学习内容。',
-    path: '/report',
-    buttonText: '查看报告'
-  }
-]
-
-const learningPath = [
-  {
-    stage: '第一阶段',
-    title: 'AI基础概念',
-    description: '了解人工智能的基本概念、发展历史和应用领域。',
-    path: '/study'
-  },
-  {
-    stage: '第二阶段',
-    title: '数学基础',
-    description: '学习线性代数、概率统计、微积分等AI所需的数学知识。',
-    path: '/study'
-  },
-  {
-    stage: '第三阶段',
-    title: 'Python与数据处理',
-    description: '掌握Python编程基础和数据处理库的使用。',
-    path: '/study'
-  },
-  {
-    stage: '第四阶段',
-    title: '机器学习算法',
-    description: '学习各种机器学习算法的原理和应用。',
-    path: '/study'
-  },
-  {
-    stage: '第五阶段',
-    title: '深度学习基础',
-    description: '了解深度学习的基本概念和神经网络基础。',
-    path: '/study'
-  },
-  {
-    stage: '第六阶段',
-    title: '大模型（LLM）原理与应用',
-    description: '学习大型语言模型的原理和应用。',
-    path: '/study'
-  }
-]
-
-const navigateTo = (path) => {
-  router.push(path)
-}
+// 可以在这里添加组件逻辑
 </script>
 
 <style scoped>
 .home-container {
-  padding: 20px 0;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.carousel {
-  margin-bottom: 40px;
+.welcome-section {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.carousel-item {
-  height: 100%;
+.icon-wrapper {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  background-color: #f5f7fa;
-  border-radius: 8px;
-  padding: 0 40px;
-  text-align: center;
+  justify-content: center;
 }
 
-.carousel-item h3 {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: #303133;
+.card {
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
-.carousel-item p {
-  font-size: 16px;
-  color: #606266;
-  line-height: 1.5;
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
-.features {
-  margin-bottom: 40px;
-}
-
-.feature-card {
-  margin-bottom: 20px;
-}
-
-.feature-icon {
-  font-size: 48px;
-  color: #409eff;
-  margin-bottom: 20px;
-}
-
-.feature-card h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: #303133;
-}
-
-.feature-card p {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 20px;
-  line-height: 1.5;
-}
-
-.learning-path {
-  margin-top: 40px;
-}
-
-.learning-path h2 {
-  font-size: 24px;
-  margin-bottom: 30px;
-  color: #303133;
-  text-align: center;
-}
-
-.el-timeline-item {
-  margin-bottom: 30px;
-}
-
-.el-timeline-item__timestamp {
-  font-size: 16px;
-  font-weight: bold;
-  color: #409eff;
-}
-
-.el-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.el-card h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-  color: #303133;
-}
-
-.el-card p {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 20px;
-  line-height: 1.5;
+@media (max-width: 768px) {
+  .welcome-section {
+    text-align: center;
+  }
+  
+  .welcome-section .d-flex {
+    justify-content: center;
+  }
 }
 </style>
