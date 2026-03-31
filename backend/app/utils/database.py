@@ -1,0 +1,34 @@
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# 获取数据库连接信息
+DB_USER = os.getenv("DB_USER", "")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "ai_learning_system")
+
+# 明确使用pg8000驱动
+DATABASE_URL = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# 创建数据库引擎
+engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+
+# 创建会话工厂
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# 创建基类
+Base = declarative_base()
+
+# 依赖项，用于获取数据库会话
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
