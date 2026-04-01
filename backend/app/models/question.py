@@ -15,6 +15,6 @@ class Question(Base):
     explanation = Column(Text)
     
     # 关系
-    knowledge = relationship("KnowledgePoint", back_populates="questions")
+    knowledge = relationship("KnowledgePoint", backref="questions")
     answers = relationship("Answer", back_populates="question")
     user_answers = relationship("UserAnswer", back_populates="question")

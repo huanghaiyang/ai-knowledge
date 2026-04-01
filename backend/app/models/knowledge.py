@@ -13,4 +13,4 @@ class KnowledgePoint(Base):
     
     # 关系
     parent = relationship("KnowledgePoint", remote_side=[id], backref="children")
-    questions = relationship("Question", back_populates="knowledge")
+    # 移除循环引用，在Question模型中定义关系
