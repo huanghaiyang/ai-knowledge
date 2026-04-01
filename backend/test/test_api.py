@@ -4,19 +4,34 @@ API测试文件
 """
 import sys
 import os
+import json
 import requests
 from dotenv import load_dotenv
 
 # 添加项目根目录到Python路径
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# 读取配置文件
+config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config.json')
+if not os.path.exists(config_path):
+    print("错误: 配置文件不存在")
+    print("请先创建config.json文件")
+    sys.exit(1)
+
+try:
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+except Exception as e:
+    print(f"错误: 配置文件解析失败: {e}")
+    sys.exit(1)
+
 # 加载环境变量
 load_dotenv()
 
-# 从环境变量中获取后端API地址
-backend_host = os.getenv('BACKEND_HOST', 'localhost')
-backend_port = os.getenv('BACKEND_PORT', '8000')
-base_url = f"http://{backend_host}:{backend_port}"
+# 从环境变量或配置文件中获取后端API地址
+backend_host = os.getenv('BACKEND_HOST', config['backend']['host'])
+backend_port = os.getenv('BACKEND_PORT', config['backend']['port'])
+base_url = os.getenv('BACKEND_URL', f'http://{backend_host}:{backend_port}')
 
 def test_root_endpoint():
     """

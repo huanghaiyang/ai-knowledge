@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from dotenv import load_dotenv
 
 try:
@@ -9,14 +10,50 @@ except ImportError:
     print("请执行: pip install pg8000")
     sys.exit(1)
 
+# 读取配置文件
+config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config.json')
+if not os.path.exists(config_path):
+    print("错误: 配置文件不存在")
+    print("请先创建config.json文件")
+    sys.exit(1)
+
+try:
+    with open(config_path, 'r', encoding='utf-8') as f:
+        config = json.load(f)
+except Exception as e:
+    print(f"错误: 配置文件解析失败: {e}")
+    sys.exit(1)
+
+# 加载环境变量
 load_dotenv()
 
 # 获取数据库连接信息
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5455")
-DB_NAME = os.getenv("DB_NAME", "ai_learning_system")
+DB_USER = os.getenv("DB_USER", config['database']['user'])
+DB_PASSWORD = os.getenv("DB_PASSWORD", config['database']['password'])
+DB_HOST = os.getenv("DB_HOST", config['database']['host'])
+DB_PORT = os.getenv("DB_PORT", config['database']['port'])
+DB_NAME = os.getenv("DB_NAME", config['database']['name'])
+
+# 检查配置是否完整
+if not DB_USER:
+    print("错误: 数据库用户名未设置")
+    sys.exit(1)
+
+if not DB_PASSWORD:
+    print("错误: 数据库密码未设置")
+    sys.exit(1)
+
+if not DB_HOST:
+    print("错误: 数据库主机未设置")
+    sys.exit(1)
+
+if not DB_PORT:
+    print("错误: 数据库端口未设置")
+    sys.exit(1)
+
+if not DB_NAME:
+    print("错误: 数据库名称未设置")
+    sys.exit(1)
 
 def create_database():
     """创建数据库"""

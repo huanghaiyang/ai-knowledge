@@ -2,17 +2,13 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-import os
-from dotenv import load_dotenv
 from flask import g
+from app.utils.config import SECRET_KEY
 from app.utils.database import get_db
 from app.models.user import User
 from app.utils.common import verify_password, get_password_hash
 
-load_dotenv()
-
 # 密钥
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

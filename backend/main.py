@@ -1,16 +1,12 @@
 from flask import Flask, jsonify, g
 from flask_cors import CORS
 import asyncio
-import os
-from dotenv import load_dotenv
+from app.utils.config import BACKEND_HOST, BACKEND_PORT, SECRET_KEY, DEBUG
 from app.utils.database import engine, Base
 from app.models import user, knowledge, question, answer
 
-# 加载环境变量
-load_dotenv()
-
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key-here')
+app.config['SECRET_KEY'] = SECRET_KEY
 CORS(app)
 
 # 创建数据库表
@@ -37,7 +33,4 @@ answer.register_routes(app)
 report.register_routes(app)
 
 if __name__ == "__main__":
-    host = os.getenv('BACKEND_HOST', '0.0.0.0')
-    port = int(os.getenv('BACKEND_PORT', '8000'))
-    debug = os.getenv('DEBUG', 'True').lower() == 'true'
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=BACKEND_HOST, port=int(BACKEND_PORT), debug=DEBUG)

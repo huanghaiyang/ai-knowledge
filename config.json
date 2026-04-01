@@ -1,0 +1,27 @@
+{
+  "database": {
+    "user": "postgres",
+    "password": "psql24678",
+    "host": "localhost",
+    "port": "5455",
+    "name": "ai_learning_system"
+  },
+  "backend": {
+    "host": "0.0.0.0",
+    "port": "8000",
+    "protocol": "http",
+    "secret_key": "your-secret-key-here-change-this-in-production",
+    "debug": true
+  },
+  "jwt": {
+    "secret_key": "your-jwt-secret-key-here"
+  },
+  "openai": {
+    "api_key": "your-openai-api-key-here"
+  },
+  "frontend": {
+    "port": "3000",
+    "host": "localhost",
+    "protocol": "http"
+  }
+}

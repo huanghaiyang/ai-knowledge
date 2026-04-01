@@ -235,6 +235,21 @@
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* 让核心功能部分的card-body里的按钮底部对齐 */
+.features-section .card {
+  position: relative;
+}
+
+.features-section .card-body {
+  padding-bottom: 50px; /* 为按钮留出空间 */
+}
+
+.features-section .card-body .btn {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+}
+
 @media (max-width: 768px) {
   .welcome-section {
     text-align: center;
@@ -242,6 +257,11 @@
   
   .welcome-section .d-flex {
     justify-content: center;
+  }
+  
+  .features-section .card-body .btn {
+    left: 50%;
+    transform: translateX(-50%);
   }
 }
 </style>

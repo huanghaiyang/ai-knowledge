@@ -2,7 +2,26 @@ import os
 import subprocess
 import time
 import webbrowser
+import json
 from dotenv import load_dotenv
+
+# 读取配置文件
+def load_config():
+    """加载配置文件"""
+    # 尝试读取config.json文件
+    config_path = os.path.join(os.getcwd(), 'config.json')
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            print('配置文件读取成功')
+            return config
+        except Exception as e:
+            print(f'配置文件解析失败，请检查config.json文件格式: {e}')
+            exit(1)
+    else:
+        print('配置文件不存在，请先创建config.json文件')
+        exit(1)
 
 def start_frontend(frontend_url):
     """启动前端服务"""
@@ -60,29 +79,34 @@ def start_frontend(frontend_url):
 
 def start_backend():
     """启动后端服务"""
+    # 加载配置
+    config = load_config()
+    
     # 检查配置文件是否存在
     print('检查配置文件是否存在...')
     env_file_path = os.path.join('backend', '.env')
     if not os.path.exists(env_file_path):
         print('创建后端环境配置文件...')
-        env_content = '''# 数据库配置
-DB_USER=postgres
-DB_PASSWORD=psql24678
-DB_HOST=localhost
-DB_PORT=5455
-DB_NAME=ai_learning_system
+        env_content = f'''
+# 数据库配置
+DB_USER={config['database']['user']}
+DB_PASSWORD={config['database']['password']}
+DB_HOST={config['database']['host']}
+DB_PORT={config['database']['port']}
+DB_NAME={config['database']['name']}
 
 # 后端配置
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8000
-SECRET_KEY=your-secret-key-here-change-this-in-production
-DEBUG=True
+BACKEND_HOST={config['backend']['host']}
+BACKEND_PORT={config['backend']['port']}
+SECRET_KEY={config['backend']['secret_key']}
+DEBUG={config['backend']['debug']}
 
 # JWT Secret - generate a secure secret key for production
-JWT_SECRET_KEY=your-jwt-secret-key-here
+JWT_SECRET_KEY={config['jwt']['secret_key']}
 
 # OpenAI API Key - optional, for AI features
-OPENAI_API_KEY=your-openai-api-key-here'''
+OPENAI_API_KEY={config['openai']['api_key']}
+'''
         with open(env_file_path, 'w') as f:
             f.write(env_content)
         print('后端环境配置文件创建成功')
@@ -91,9 +115,13 @@ OPENAI_API_KEY=your-openai-api-key-here'''
     frontend_env_path = os.path.join('frontend', '.env')
     if not os.path.exists(frontend_env_path):
         print('创建前端环境配置文件...')
-        env_content = '''# 前端环境配置
-VITE_FRONTEND_PORT=3000
-VITE_BACKEND_URL=http://localhost:8000'''
+        backend_protocol = config['backend'].get('protocol', 'http')
+        backend_url = f'{backend_protocol}://{config['backend']['host']}:{config['backend']['port']}'
+        env_content = f'''
+# 前端环境配置
+VITE_FRONTEND_PORT={config['frontend']['port']}
+VITE_BACKEND_URL={backend_url}
+'''
         with open(frontend_env_path, 'w') as f:
             f.write(env_content)
         print('前端环境配置文件创建成功')
@@ -102,15 +130,14 @@ VITE_BACKEND_URL=http://localhost:8000'''
     load_dotenv(dotenv_path=env_file_path)
     load_dotenv(dotenv_path=frontend_env_path)
     
-    # 获取配置
-    frontend_port = os.getenv('VITE_FRONTEND_PORT', '3000')
-    backend_port = os.getenv('BACKEND_PORT', '8000')
-    frontend_url = f'http://localhost:{frontend_port}'
-    backend_url = f'http://localhost:{backend_port}'
+    # 导入配置管理模块
+    import sys
+    sys.path.append(os.path.join(os.getcwd(), 'backend'))
+    from app.utils.config import FRONTEND_URL, BACKEND_URL
     
     print('配置文件检查通过')
-    print(f'前端端口: {frontend_port}')
-    print(f'后端端口: {backend_port}')
+    print(f'前端端口: {FRONTEND_URL}')
+    print(f'后端端口: {BACKEND_URL}')
     
     # 启动后端服务
     print('启动后端服务...')
@@ -119,11 +146,11 @@ VITE_BACKEND_URL=http://localhost:8000'''
     # 等待后端服务启动
     time.sleep(5)
     print('后端服务已启动')
-    print(f'后端服务地址: {backend_url}')
-    print(f'后端API文档: {backend_url}/docs')
+    print(f'后端服务地址: {BACKEND_URL}')
+    print(f'后端API文档: {BACKEND_URL}/docs')
     
     # 启动前端服务
-    start_frontend(frontend_url)
+    start_frontend(FRONTEND_URL)
     
     # 停止后端进程
     backend_process.terminate()
@@ -157,17 +184,25 @@ if __name__ == '__main__':
             frontend_env_path = os.path.join('frontend', '.env')
             if not os.path.exists(frontend_env_path):
                 print('创建前端环境配置文件...')
-                env_content = '''# 前端环境配置
-VITE_FRONTEND_PORT=3000
-VITE_BACKEND_URL=http://localhost:8000'''
+                # 加载配置
+                config = load_config()
+                backend_protocol = config['backend'].get('protocol', 'http')
+                backend_url = f'{backend_protocol}://{config['backend']['host']}:{config['backend']['port']}'
+                env_content = f'''
+# 前端环境配置
+VITE_FRONTEND_PORT={config['frontend']['port']}
+VITE_BACKEND_URL={backend_url}
+'''
                 with open(frontend_env_path, 'w') as f:
                     f.write(env_content)
                 print('前端环境配置文件创建成功')
             # 加载环境变量
             load_dotenv(dotenv_path=frontend_env_path)
-            frontend_port = os.getenv('VITE_FRONTEND_PORT', '3000')
-            frontend_url = f'http://localhost:{frontend_port}'
-            start_frontend(frontend_url)
+            # 导入配置管理模块
+            import sys
+            sys.path.append(os.path.join(os.getcwd(), 'backend'))
+            from app.utils.config import FRONTEND_URL
+            start_frontend(FRONTEND_URL)
         else:
             print(f'uvicorn版本: {result.stdout.strip()}')
             start_backend()
@@ -178,14 +213,22 @@ VITE_BACKEND_URL=http://localhost:8000'''
         frontend_env_path = os.path.join('frontend', '.env')
         if not os.path.exists(frontend_env_path):
             print('创建前端环境配置文件...')
-            env_content = '''# 前端环境配置
-VITE_FRONTEND_PORT=3000
-VITE_BACKEND_URL=http://localhost:8000'''
+            # 加载配置
+            config = load_config()
+            backend_protocol = config['backend'].get('protocol', 'http')
+            backend_url = f'{backend_protocol}://{config['backend']['host']}:{config['backend']['port']}'
+            env_content = f'''
+# 前端环境配置
+VITE_FRONTEND_PORT={config['frontend']['port']}
+VITE_BACKEND_URL={backend_url}
+'''
             with open(frontend_env_path, 'w') as f:
                 f.write(env_content)
             print('前端环境配置文件创建成功')
         # 加载环境变量
         load_dotenv(dotenv_path=frontend_env_path)
-        frontend_port = os.getenv('VITE_FRONTEND_PORT', '3000')
-        frontend_url = f'http://localhost:{frontend_port}'
-        start_frontend(frontend_url)
+        # 导入配置管理模块
+        import sys
+        sys.path.append(os.path.join(os.getcwd(), 'backend'))
+        from app.utils.config import FRONTEND_URL
+        start_frontend(FRONTEND_URL)

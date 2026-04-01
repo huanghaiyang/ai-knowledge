@@ -2,36 +2,55 @@ const { exec, spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
+// 读取配置文件
+let config = {};
+
+// 尝试读取config.json文件
+if (fs.existsSync('./config.json')) {
+  try {
+    config = JSON.parse(fs.readFileSync('./config.json', 'utf8'));
+    console.log('配置文件读取成功');
+  } catch (error) {
+    console.error('配置文件解析失败，请检查config.json文件格式');
+    process.exit(1);
+  }
+} else {
+  console.error('配置文件不存在，请先创建config.json文件');
+  process.exit(1);
+}
+
 // 检查环境文件
 if (!fs.existsSync('./backend/.env')) {
     console.log('创建后端环境配置文件...');
     const envContent = `# 数据库配置
-DB_USER=postgres
-DB_PASSWORD=psql24678
-DB_HOST=localhost
-DB_PORT=5455
-DB_NAME=ai_learning_system
+DB_USER=${config.database.user}
+DB_PASSWORD=${config.database.password}
+DB_HOST=${config.database.host}
+DB_PORT=${config.database.port}
+DB_NAME=${config.database.name}
 
 # 后端配置
-BACKEND_HOST=0.0.0.0
-BACKEND_PORT=8000
-SECRET_KEY=your-secret-key-here-change-this-in-production
-DEBUG=True
+BACKEND_HOST=${config.backend.host}
+BACKEND_PORT=${config.backend.port}
+SECRET_KEY=${config.backend.secret_key}
+DEBUG=${config.backend.debug}
 
 # JWT Secret - generate a secure secret key for production
-JWT_SECRET_KEY=your-jwt-secret-key-here
+JWT_SECRET_KEY=${config.jwt.secret_key}
 
 # OpenAI API Key - optional, for AI features
-OPENAI_API_KEY=your-openai-api-key-here`;
+OPENAI_API_KEY=${config.openai.api_key}`;
     fs.writeFileSync('./backend/.env', envContent);
     console.log('后端环境配置文件创建成功');
 }
 
 if (!fs.existsSync('./frontend/.env')) {
     console.log('创建前端环境配置文件...');
+    const backendProtocol = config.backend.protocol || 'http';
+    const backendUrl = `${backendProtocol}://${config.backend.host}:${config.backend.port}`;
     const envContent = `# 前端环境配置
-VITE_FRONTEND_PORT=3000
-VITE_BACKEND_URL=http://localhost:8000`;
+VITE_FRONTEND_PORT=${config.frontend.port}
+VITE_BACKEND_URL=${backendUrl}`;
     fs.writeFileSync('./frontend/.env', envContent);
     console.log('前端环境配置文件创建成功');
 }
@@ -41,10 +60,15 @@ const dotenv = require('dotenv');
 dotenv.config({ path: './backend/.env' });
 dotenv.config({ path: './frontend/.env' });
 
-const frontendPort = process.env.VITE_FRONTEND_PORT || 3000;
-const backendPort = process.env.BACKEND_PORT || 8000;
-const frontendUrl = `http://localhost:${frontendPort}`;
-const backendUrl = `http://localhost:${backendPort}`;
+// 从配置中获取端口和URL
+const frontendPort = process.env.VITE_FRONTEND_PORT || config.frontend.port;
+const backendPort = process.env.BACKEND_PORT || config.backend.port;
+const frontendHost = config.frontend.host || 'localhost';
+const backendHost = config.backend.host || 'localhost';
+const frontendProtocol = config.frontend.protocol || 'http';
+const backendProtocol = config.backend.protocol || 'http';
+const frontendUrl = `${frontendProtocol}://${frontendHost}:${frontendPort}`;
+const backendUrl = `${backendProtocol}://${backendHost}:${backendPort}`;
 
 console.log('正在启动AI知识学习与智能测评系统...');
 
