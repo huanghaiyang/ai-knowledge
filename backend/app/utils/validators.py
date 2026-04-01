@@ -245,35 +245,37 @@ class RegistrationLimiter:
 registration_limiter = RegistrationLimiter()
 
 
-def validate_user_registration(username: str, email: str, password: str, ip_address: str = None) -> None:
+def validate_user_registration(username: str, email: str, password: str, ip_address: str = None) -> Tuple[bool, str, int]:
     """
     完整的用户注册验证
-    如果验证失败，抛出abort异常
+    返回: (是否有效, 错误信息, 状态码)
     """
     # 验证用户名
     is_valid, message = UserValidator.validate_username(username)
     if not is_valid:
-        abort(400, description=message)
+        return False, message, 400
     
     # 验证密码
     is_valid, message = UserValidator.validate_password(password)
     if not is_valid:
-        abort(400, description=message)
+        return False, message, 400
     
     # 验证邮箱域名
     is_valid, message = UserValidator.validate_email_domain(email)
     if not is_valid:
-        abort(400, description=message)
+        return False, message, 400
     
     # 检查注册频率限制
     if ip_address:
         is_allowed, message = registration_limiter.check_ip_limit(ip_address)
         if not is_allowed:
-            abort(429, description=message)
+            return False, message, 429
     
     is_allowed, message = registration_limiter.check_email_limit(email)
     if not is_allowed:
-        abort(429, description=message)
+        return False, message, 429
+    
+    return True, "验证通过", 200
 
 
 def record_registration(ip_address: str, email: str) -> None:

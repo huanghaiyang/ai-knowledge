@@ -16,19 +16,30 @@ export const useUserStore = defineStore('user', {
         this.token = response.data.access_token
         localStorage.setItem('token', this.token)
         await this.loadUser()
-        return true
+        return { success: true }
       } catch (error) {
         console.error('登录失败:', error)
-        return false
+        let errorMessage = '登录失败，请检查邮箱和密码'
+        if (error.response?.data?.detail) {
+          errorMessage = error.response.data.detail
+        }
+        return { success: false, error: errorMessage }
       }
     },
     async register(username, email, password) {
       try {
         const response = await axios.post('/api/user/register', { username, email, password })
-        return true
+        return { success: true }
       } catch (error) {
         console.error('注册失败:', error)
-        return false
+        let errorMessage = '注册失败，请稍后重试'
+        
+        if (error.response?.data?.detail) {
+          // JSON格式的错误信息
+          errorMessage = error.response.data.detail
+        }
+        
+        return { success: false, error: errorMessage }
       }
     },
     async loadUser() {

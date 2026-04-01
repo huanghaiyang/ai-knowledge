@@ -16,12 +16,15 @@ async def register(data: dict, client_ip: str, db: Session):
     password = data.get('password', '')
     
     # 执行完整的安全校验
-    validate_user_registration(
+    is_valid, message, status_code = validate_user_registration(
         username=username,
         email=email,
         password=password,
         ip_address=client_ip
     )
+    
+    if not is_valid:
+        return jsonify({"detail": message}), status_code
     
     # 检查用户是否已存在（邮箱）
     db_user = db.query(User).filter(User.email == email).first()
