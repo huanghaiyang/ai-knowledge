@@ -16,8 +16,16 @@ DB_NAME = os.getenv("DB_NAME", "ai_learning_system")
 # 明确使用pg8000驱动
 DATABASE_URL = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# 创建数据库引擎
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+# 创建数据库引擎，配置连接池
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=10,  # 连接池大小
+    max_overflow=20,  # 最大溢出连接数
+    pool_timeout=30,  # 连接超时时间（秒）
+    pool_recycle=1800,  # 连接回收时间（秒），避免连接过期
+    echo=False  # 是否打印SQL语句
+)
 
 # 创建会话工厂
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -29,6 +37,14 @@ Base = declarative_base()
 def get_db():
     db = SessionLocal()
     try:
+        # 开始事务
         yield db
+        # 提交事务
+        db.commit()
+    except Exception as e:
+        # 发生异常时回滚事务
+        db.rollback()
+        raise
     finally:
+        # 无论成功与否，都关闭会话
         db.close()

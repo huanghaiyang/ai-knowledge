@@ -1,6 +1,6 @@
 import re
 from typing import Tuple, List, Optional
-from fastapi import HTTPException, status
+from flask import abort
 
 class UserValidator:
     """用户数据验证器"""
@@ -104,6 +104,39 @@ class UserValidator:
             return False, "密码过于简单，请使用更复杂的密码"
         
         return True, "密码强度符合要求"
+    
+    @classmethod
+    def validate_email(cls, email: str) -> Tuple[bool, str]:
+        """
+        验证邮箱格式
+        规则：
+        1. 必须包含@符号
+        2. @前后必须有内容
+        3. 域名部分必须包含点
+        4. 不能是临时邮箱或禁止的域名
+        """
+        if not email:
+            return False, "邮箱不能为空"
+        
+        # 检查邮箱格式
+        if '@' not in email:
+            return False, "邮箱格式不正确，缺少@符号"
+        
+        try:
+            local_part, domain = email.split('@')
+            if not local_part or not domain:
+                return False, "邮箱格式不正确，@前后必须有内容"
+            
+            if '.' not in domain:
+                return False, "邮箱格式不正确，域名部分必须包含点"
+            
+            # 检查是否为临时邮箱或禁止的域名
+            if domain.lower() in cls.BLOCKED_EMAIL_DOMAINS:
+                return False, "该邮箱域名不允许注册"
+            
+            return True, "邮箱验证通过"
+        except Exception:
+            return False, "邮箱格式不正确"
     
     @classmethod
     def validate_email_domain(cls, email: str) -> Tuple[bool, str]:
@@ -215,47 +248,32 @@ registration_limiter = RegistrationLimiter()
 def validate_user_registration(username: str, email: str, password: str, ip_address: str = None) -> None:
     """
     完整的用户注册验证
-    如果验证失败，抛出HTTPException
+    如果验证失败，抛出abort异常
     """
     # 验证用户名
     is_valid, message = UserValidator.validate_username(username)
     if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=message
-        )
+        abort(400, description=message)
     
     # 验证密码
     is_valid, message = UserValidator.validate_password(password)
     if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=message
-        )
+        abort(400, description=message)
     
     # 验证邮箱域名
     is_valid, message = UserValidator.validate_email_domain(email)
     if not is_valid:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=message
-        )
+        abort(400, description=message)
     
     # 检查注册频率限制
     if ip_address:
         is_allowed, message = registration_limiter.check_ip_limit(ip_address)
         if not is_allowed:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=message
-            )
+            abort(429, description=message)
     
     is_allowed, message = registration_limiter.check_email_limit(email)
     if not is_allowed:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=message
-        )
+        abort(429, description=message)
 
 
 def record_registration(ip_address: str, email: str) -> None:
@@ -263,3 +281,128 @@ def record_registration(ip_address: str, email: str) -> None:
     if ip_address:
         registration_limiter.record_ip_registration(ip_address)
     registration_limiter.record_email_registration(email)
+
+
+class KnowledgeValidator:
+    """知识点验证器"""
+    
+    # 知识点标题长度限制
+    MIN_TITLE_LENGTH = 2
+    MAX_TITLE_LENGTH = 100
+    
+    # 知识点描述长度限制
+    MAX_DESCRIPTION_LENGTH = 1000
+    
+    @classmethod
+    def validate_title(cls, title: str) -> Tuple[bool, str]:
+        """
+        验证知识点标题
+        """
+        if not title:
+            return False, "知识点标题不能为空"
+        
+        if len(title) < cls.MIN_TITLE_LENGTH:
+            return False, f"知识点标题长度不能少于{cls.MIN_TITLE_LENGTH}个字符"
+        
+        if len(title) > cls.MAX_TITLE_LENGTH:
+            return False, f"知识点标题长度不能超过{cls.MAX_TITLE_LENGTH}个字符"
+        
+        return True, "知识点标题验证通过"
+    
+    @classmethod
+    def validate_description(cls, description: str) -> Tuple[bool, str]:
+        """
+        验证知识点描述
+        """
+        if description and len(description) > cls.MAX_DESCRIPTION_LENGTH:
+            return False, f"知识点描述长度不能超过{cls.MAX_DESCRIPTION_LENGTH}个字符"
+        
+        return True, "知识点描述验证通过"
+
+
+class QuestionValidator:
+    """题目验证器"""
+    
+    # 题目内容长度限制
+    MIN_CONTENT_LENGTH = 5
+    MAX_CONTENT_LENGTH = 2000
+    
+    # 选项长度限制
+    MAX_OPTIONS_LENGTH = 1000
+    
+    # 答案长度限制
+    MAX_ANSWER_LENGTH = 500
+    
+    # 支持的题目类型
+    SUPPORTED_QUESTION_TYPES = {
+        'single_choice', 'multiple_choice', 'true_false',
+        'fill_blank', 'short_answer', 'code'
+    }
+    
+    # 支持的难度级别
+    SUPPORTED_DIFFICULTY_LEVELS = {'easy', 'medium', 'hard'}
+    
+    @classmethod
+    def validate_content(cls, content: str) -> Tuple[bool, str]:
+        """
+        验证题目内容
+        """
+        if not content:
+            return False, "题目内容不能为空"
+        
+        if len(content) < cls.MIN_CONTENT_LENGTH:
+            return False, f"题目内容长度不能少于{cls.MIN_CONTENT_LENGTH}个字符"
+        
+        if len(content) > cls.MAX_CONTENT_LENGTH:
+            return False, f"题目内容长度不能超过{cls.MAX_CONTENT_LENGTH}个字符"
+        
+        return True, "题目内容验证通过"
+    
+    @classmethod
+    def validate_options(cls, options: str) -> Tuple[bool, str]:
+        """
+        验证题目选项
+        """
+        if options and len(options) > cls.MAX_OPTIONS_LENGTH:
+            return False, f"题目选项长度不能超过{cls.MAX_OPTIONS_LENGTH}个字符"
+        
+        return True, "题目选项验证通过"
+    
+    @classmethod
+    def validate_answer(cls, answer: str) -> Tuple[bool, str]:
+        """
+        验证正确答案
+        """
+        if not answer:
+            return False, "正确答案不能为空"
+        
+        if len(answer) > cls.MAX_ANSWER_LENGTH:
+            return False, f"正确答案长度不能超过{cls.MAX_ANSWER_LENGTH}个字符"
+        
+        return True, "正确答案验证通过"
+    
+    @classmethod
+    def validate_question_type(cls, question_type: str) -> Tuple[bool, str]:
+        """
+        验证题目类型
+        """
+        if not question_type:
+            return False, "题目类型不能为空"
+        
+        if question_type not in cls.SUPPORTED_QUESTION_TYPES:
+            return False, f"不支持的题目类型，支持的类型有：{', '.join(cls.SUPPORTED_QUESTION_TYPES)}"
+        
+        return True, "题目类型验证通过"
+    
+    @classmethod
+    def validate_difficulty(cls, difficulty: str) -> Tuple[bool, str]:
+        """
+        验证难度级别
+        """
+        if not difficulty:
+            return False, "难度级别不能为空"
+        
+        if difficulty not in cls.SUPPORTED_DIFFICULTY_LEVELS:
+            return False, f"不支持的难度级别，支持的级别有：{', '.join(cls.SUPPORTED_DIFFICULTY_LEVELS)}"
+        
+        return True, "难度级别验证通过"

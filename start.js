@@ -1,5 +1,50 @@
 const { exec, spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+
+// 检查环境文件
+if (!fs.existsSync('./backend/.env')) {
+    console.log('创建后端环境配置文件...');
+    const envContent = `# 数据库配置
+DB_USER=postgres
+DB_PASSWORD=psql24678
+DB_HOST=localhost
+DB_PORT=5455
+DB_NAME=ai_learning_system
+
+# 后端配置
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8000
+SECRET_KEY=your-secret-key-here-change-this-in-production
+DEBUG=True
+
+# JWT Secret - generate a secure secret key for production
+JWT_SECRET_KEY=your-jwt-secret-key-here
+
+# OpenAI API Key - optional, for AI features
+OPENAI_API_KEY=your-openai-api-key-here`;
+    fs.writeFileSync('./backend/.env', envContent);
+    console.log('后端环境配置文件创建成功');
+}
+
+if (!fs.existsSync('./frontend/.env')) {
+    console.log('创建前端环境配置文件...');
+    const envContent = `# 前端环境配置
+VITE_FRONTEND_PORT=3000
+VITE_BACKEND_URL=http://localhost:8000`;
+    fs.writeFileSync('./frontend/.env', envContent);
+    console.log('前端环境配置文件创建成功');
+}
+
+// 读取环境变量
+const dotenv = require('dotenv');
+dotenv.config({ path: './backend/.env' });
+dotenv.config({ path: './frontend/.env' });
+
+const frontendPort = process.env.VITE_FRONTEND_PORT || 3000;
+const backendPort = process.env.BACKEND_PORT || 8000;
+const frontendUrl = `http://localhost:${frontendPort}`;
+const backendUrl = `http://localhost:${backendPort}`;
 
 console.log('正在启动AI知识学习与智能测评系统...');
 
@@ -88,15 +133,15 @@ exec('python --version', (error, stdout, stderr) => {
       console.log('打开浏览器访问前端页面...');
       // 使用child_process模块打开浏览器
       if (process.platform === 'win32') {
-        exec('start http://localhost:3000');
+        exec(`start ${frontendUrl}`);
       } else if (process.platform === 'darwin') {
-        exec('open http://localhost:3000');
+        exec(`open ${frontendUrl}`);
       } else {
-        exec('xdg-open http://localhost:3000');
+        exec(`xdg-open ${frontendUrl}`);
       }
       
       console.log('前端服务启动完成！');
-      console.log('前端服务地址: http://localhost:3000');
+      console.log(`前端服务地址: ${frontendUrl}`);
       console.log('注意：后端服务未启动，部分功能可能无法使用');
     }, 10000); // 等待10秒
     
@@ -120,7 +165,7 @@ exec('python --version', (error, stdout, stderr) => {
     
     // 启动后端服务
     console.log('启动后端服务...');
-    const backendProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--reload', '--port', '8003'], {
+    const backendProcess = spawn('python', ['main.py'], {
       cwd: path.join(__dirname, 'backend'),
       stdio: 'inherit',
       shell: true
@@ -129,8 +174,8 @@ exec('python --version', (error, stdout, stderr) => {
     // 等待后端服务启动
     setTimeout(() => {
       console.log('后端服务已启动');
-      console.log('后端服务地址: http://localhost:8003');
-      console.log('后端API文档: http://localhost:8003/docs');
+      console.log(`后端服务地址: ${backendUrl}`);
+      console.log(`后端API文档: ${backendUrl}/docs`);
       
       // 检查前端依赖是否安装
       console.log('检查前端依赖是否安装...');
@@ -139,7 +184,7 @@ exec('python --version', (error, stdout, stderr) => {
           console.error('警告：未找到npm环境，请安装Node.js以启动前端服务');
           console.error('前端服务将无法启动，但后端服务仍可正常运行');
           console.log('系统启动完成！');
-          console.log('后端服务地址: http://localhost:8003');
+          console.log(`后端服务地址: ${backendUrl}`);
           return;
         }
         console.log(`npm版本: ${stdout.trim()}`);
@@ -160,16 +205,16 @@ exec('python --version', (error, stdout, stderr) => {
           console.log('打开浏览器访问前端页面...');
           // 使用child_process模块打开浏览器
           if (process.platform === 'win32') {
-            exec('start http://localhost:3000');
+            exec(`start ${frontendUrl}`);
           } else if (process.platform === 'darwin') {
-            exec('open http://localhost:3000');
+            exec(`open ${frontendUrl}`);
           } else {
-            exec('xdg-open http://localhost:3000');
+            exec(`xdg-open ${frontendUrl}`);
           }
           
           console.log('系统启动完成！');
-          console.log('后端服务地址: http://localhost:8003');
-          console.log('前端服务地址: http://localhost:3000');
+          console.log(`后端服务地址: ${backendUrl}`);
+          console.log(`前端服务地址: ${frontendUrl}`);
         }, 10000); // 等待10秒
       });
     }, 5000); // 等待5秒
