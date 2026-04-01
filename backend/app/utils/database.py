@@ -37,14 +37,7 @@ Base = declarative_base()
 def get_db():
     db = SessionLocal()
     try:
-        # 开始事务
         yield db
-        # 提交事务
-        db.commit()
-    except Exception as e:
-        # 发生异常时回滚事务
-        db.rollback()
-        raise
     finally:
         # 无论成功与否，都关闭会话
         db.close()
