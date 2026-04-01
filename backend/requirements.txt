@@ -5,6 +5,7 @@ SQLAlchemy==1.4.49
 python-jose==3.3.0
 python-multipart==0.0.6
 passlib==1.7.4
+argon2-cffi==23.1.0
 aiofiles==23.2.1
 pg8000==1.29.0
 aiopg==1.3.1
