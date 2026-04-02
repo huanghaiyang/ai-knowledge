@@ -2,6 +2,7 @@ import os
 from sqlalchemy import create_engine, text
 from app.utils.database import Base, engine
 from app.models import user, knowledge, question, answer
+from app.models.content import KnowledgeContent
 
 # 创建所有表
 Base.metadata.create_all(bind=engine)
@@ -42,9 +43,12 @@ if db.query(KnowledgePoint).count() == 0:
     # 插入二级知识点
     level2_knowledge = [
         # AI基础概念
-        {"title": "人工智能定义", "description": "人工智能的定义和内涵", "parent_id": level1_ids[0], "level": 2},
-        {"title": "AI发展历史", "description": "人工智能的发展历程和重要里程碑", "parent_id": level1_ids[0], "level": 2},
-        {"title": "AI应用领域", "description": "人工智能在各个领域的应用", "parent_id": level1_ids[0], "level": 2},
+        {"title": "人工智能定义与发展", "description": "人工智能的定义、发展历程和主要里程碑", "parent_id": level1_ids[0], "level": 2},
+        {"title": "机器学习基础", "description": "机器学习的基本概念、算法和应用", "parent_id": level1_ids[0], "level": 2},
+        {"title": "深度学习基础", "description": "深度学习的基本概念、网络结构和应用", "parent_id": level1_ids[0], "level": 2},
+        {"title": "自然语言处理", "description": "自然语言处理的基本概念、技术和应用", "parent_id": level1_ids[0], "level": 2},
+        {"title": "计算机视觉", "description": "计算机视觉的基本概念、技术和应用", "parent_id": level1_ids[0], "level": 2},
+        {"title": "人工智能伦理与安全", "description": "人工智能的伦理问题、安全挑战和监管政策", "parent_id": level1_ids[0], "level": 2},
         
         # 数学基础
         {"title": "线性代数", "description": "向量、矩阵、线性变换等线性代数知识", "parent_id": level1_ids[1], "level": 2},
@@ -93,7 +97,54 @@ if db.query(KnowledgePoint).count() == 0:
     ]
     
     # 插入二级知识点
+    level2_ids = {}
     for item in level2_knowledge:
+        knowledge_point = KnowledgePoint(**item)
+        db.add(knowledge_point)
+        db.flush()  # 获取id但不提交事务
+        level2_ids[item["title"]] = knowledge_point.id
+    
+    # 为AI基础概念模块生成详细的三级知识点
+    level3_knowledge = [
+        # 人工智能定义与发展
+        {"title": "人工智能的定义", "description": "人工智能是指计算机系统执行通常需要人类智能的任务的能力，包括学习、推理、问题解决、感知和语言理解等。", "parent_id": level2_ids["人工智能定义与发展"], "level": 3},
+        {"title": "人工智能的发展历程", "description": "从图灵测试到深度学习，人工智能的发展经历了多个阶段，包括早期的符号主义、连接主义、专家系统，以及近年来的深度学习革命。", "parent_id": level2_ids["人工智能定义与发展"], "level": 3},
+        {"title": "人工智能的主要分支", "description": "人工智能包括机器学习、深度学习、自然语言处理、计算机视觉、机器人学等多个分支领域。", "parent_id": level2_ids["人工智能定义与发展"], "level": 3},
+        {"title": "人工智能的应用领域", "description": "人工智能已经广泛应用于医疗、金融、教育、交通、制造业等多个领域，正在改变人们的生活和工作方式。", "parent_id": level2_ids["人工智能定义与发展"], "level": 3},
+        
+        # 机器学习基础
+        {"title": "机器学习的定义", "description": "机器学习是人工智能的一个分支，通过算法使计算机从数据中学习，而不是通过明确编程。", "parent_id": level2_ids["机器学习基础"], "level": 3},
+        {"title": "机器学习的类型", "description": "机器学习包括监督学习、无监督学习、半监督学习和强化学习等多种类型。", "parent_id": level2_ids["机器学习基础"], "level": 3},
+        {"title": "机器学习的基本流程", "description": "机器学习的基本流程包括数据收集、数据预处理、特征工程、模型训练、模型评估和模型部署等步骤。", "parent_id": level2_ids["机器学习基础"], "level": 3},
+        {"title": "机器学习的常见算法", "description": "常见的机器学习算法包括线性回归、逻辑回归、决策树、随机森林、支持向量机、K近邻等。", "parent_id": level2_ids["机器学习基础"], "level": 3},
+        
+        # 深度学习基础
+        {"title": "深度学习的定义", "description": "深度学习是机器学习的一个分支，使用多层神经网络来模拟人脑的学习过程，能够自动提取数据中的特征。", "parent_id": level2_ids["深度学习基础"], "level": 3},
+        {"title": "神经网络的基本结构", "description": "神经网络由输入层、隐藏层和输出层组成，每层包含多个神经元，神经元之间通过权重连接。", "parent_id": level2_ids["深度学习基础"], "level": 3},
+        {"title": "深度学习的常见模型", "description": "常见的深度学习模型包括卷积神经网络(CNN)、循环神经网络(RNN)、长短期记忆网络(LSTM)、Transformer等。", "parent_id": level2_ids["深度学习基础"], "level": 3},
+        {"title": "深度学习的训练方法", "description": "深度学习的训练方法包括反向传播算法、梯度下降优化器、正则化技术等。", "parent_id": level2_ids["深度学习基础"], "level": 3},
+        
+        # 自然语言处理
+        {"title": "自然语言处理的定义", "description": "自然语言处理是人工智能的一个分支，研究如何使计算机理解、处理和生成人类语言。", "parent_id": level2_ids["自然语言处理"], "level": 3},
+        {"title": "自然语言处理的主要任务", "description": "自然语言处理的主要任务包括分词、词性标注、命名实体识别、情感分析、机器翻译、问答系统等。", "parent_id": level2_ids["自然语言处理"], "level": 3},
+        {"title": "自然语言处理的技术方法", "description": "自然语言处理的技术方法包括规则-based方法、统计方法和深度学习方法。", "parent_id": level2_ids["自然语言处理"], "level": 3},
+        {"title": "自然语言处理的应用", "description": "自然语言处理的应用包括智能客服、机器翻译、文本摘要、情感分析、聊天机器人等。", "parent_id": level2_ids["自然语言处理"], "level": 3},
+        
+        # 计算机视觉
+        {"title": "计算机视觉的定义", "description": "计算机视觉是人工智能的一个分支，研究如何使计算机从图像或视频中提取信息和理解内容。", "parent_id": level2_ids["计算机视觉"], "level": 3},
+        {"title": "计算机视觉的主要任务", "description": "计算机视觉的主要任务包括图像分类、目标检测、语义分割、目标跟踪、图像生成等。", "parent_id": level2_ids["计算机视觉"], "level": 3},
+        {"title": "计算机视觉的技术方法", "description": "计算机视觉的技术方法包括传统的图像处理方法和基于深度学习的方法，如卷积神经网络。", "parent_id": level2_ids["计算机视觉"], "level": 3},
+        {"title": "计算机视觉的应用", "description": "计算机视觉的应用包括人脸识别、物体识别、自动驾驶、医学影像分析、安防监控等。", "parent_id": level2_ids["计算机视觉"], "level": 3},
+        
+        # 人工智能伦理与安全
+        {"title": "人工智能的伦理问题", "description": "人工智能的伦理问题包括隐私保护、算法偏见、就业影响、人机关系等。", "parent_id": level2_ids["人工智能伦理与安全"], "level": 3},
+        {"title": "人工智能的安全挑战", "description": "人工智能的安全挑战包括对抗性攻击、模型中毒、数据泄露、AI系统的可解释性等。", "parent_id": level2_ids["人工智能伦理与安全"], "level": 3},
+        {"title": "人工智能的监管政策", "description": "各国正在制定人工智能的监管政策，以确保AI的安全、公平和负责任的使用。", "parent_id": level2_ids["人工智能伦理与安全"], "level": 3},
+        {"title": "人工智能的未来发展", "description": "人工智能的未来发展趋势包括通用人工智能(AGI)、人机协作、量子计算与AI的结合等。", "parent_id": level2_ids["人工智能伦理与安全"], "level": 3}
+    ]
+    
+    # 插入三级知识点
+    for item in level3_knowledge:
         knowledge_point = KnowledgePoint(**item)
         db.add(knowledge_point)
     

@@ -30,103 +30,101 @@
       </el-input>
     </div>
 
-    <el-row :gutter="24">
-      <!-- 左侧知识树 -->
-      <el-col :span="8">
-        <el-card class="knowledge-tree">
-          <template #header>
-            <div class="card-header">
-              <span class="tree-title">知识树</span>
-              <span class="tree-count">{{ totalKnowledgeCount }} 个知识点</span>
-            </div>
-          </template>
-          <el-tree
-            :data="filteredKnowledgeTree"
-            :props="defaultProps"
-            @node-click="handleNodeClick"
-            node-key="id"
-            default-expand-all
-            :expand-on-click-node="false"
-            :highlight-current="true"
-            :current-node-key="selectedKnowledge?.id"
-            class="knowledge-tree-content"
-          >
-            <template #default="{ node, data }">
+    <div class="content-container flex-grow">
+      <el-row :gutter="24" style="height: 100%;">
+        <!-- 左侧知识树 -->
+        <el-col :span="8" style="height: 100%;">
+          <el-card class="knowledge-tree" style="height: 100%;">
+            <template #header>
+              <div class="card-header">
+                <span class="tree-title">知识树</span>
+                <span class="tree-count">{{ totalKnowledgeCount }} 个知识点</span>
+              </div>
+            </template>
+            <el-tree
+              :data="filteredKnowledgeTree"
+              :props="defaultProps"
+              @node-click="handleNodeClick"
+              node-key="id"
+              default-expand-all
+              :expand-on-click-node="false"
+              :highlight-current="true"
+              :current-node-key="selectedKnowledge?.id"
+              class="knowledge-tree-content"
+              style="height: calc(100% - 60px);"
+            >
+              <template #default="{ node, data }">
               <span class="tree-node">
-                <el-tag v-if="data.level === 1" size="small" type="primary" effect="plain" class="level-tag">
-                  一级
-                </el-tag>
-                <el-tag v-else-if="data.level === 2" size="small" type="success" effect="plain" class="level-tag">
-                  二级
-                </el-tag>
-                <el-tag v-else size="small" type="info" effect="plain" class="level-tag">
-                  三级
-                </el-tag>
                 <span class="node-label">{{ node.label }}</span>
-                <el-tag v-if="data.children && data.children.length > 0" size="mini" type="info" effect="plain" class="children-count">
-                  {{ data.children.length }}
-                </el-tag>
               </span>
             </template>
-          </el-tree>
-        </el-card>
-      </el-col>
+            </el-tree>
+          </el-card>
+        </el-col>
 
-      <!-- 右侧知识详情 -->
-      <el-col :span="16">
-        <el-card class="knowledge-detail" v-if="selectedKnowledge">
-          <template #header>
-            <div class="card-header">
-              <span class="detail-title">{{ selectedKnowledge.title }}</span>
-              <el-button type="primary" @click="startPractice(selectedKnowledge.id)">
-                <el-icon><Check /></el-icon>
-                开始练习
-              </el-button>
+        <!-- 右侧知识详情 -->
+        <el-col :span="16" style="height: 100%;">
+          <el-card class="knowledge-detail" v-if="selectedKnowledge" style="height: 100%;">
+            <template #header>
+              <div class="card-header">
+                <span class="detail-title">{{ selectedKnowledge.title }}</span>
+                <el-button type="primary" @click="startPractice(selectedKnowledge.id)">
+                  <el-icon><Check /></el-icon>
+                  开始练习
+                </el-button>
+              </div>
+            </template>
+            <div class="knowledge-content" style="height: calc(100% - 60px); overflow-y: auto;">
+              <!-- 章节内容展示 -->
+              <div v-if="loadingContent" class="content-loading">
+                <el-skeleton :rows="10" animated />
+              </div>
+              <div v-else-if="knowledgeContent && knowledgeContent.content_sections && knowledgeContent.content_sections.length > 0" class="content-sections">
+                <div v-for="(section, index) in knowledgeContent.content_sections" :key="section.id" class="content-section">
+                  <h4 class="section-title">{{ section.section_title }}</h4>
+                  <div class="section-content" v-html="formatContent(section.content)"></div>
+                </div>
+              </div>
+              <div v-else class="content-sections">
+                <div class="content-section">
+                  <h4 class="section-title">暂无内容</h4>
+                  <div class="section-content">该知识点暂无详细内容</div>
+                </div>
+              </div>
+              
+              <div class="knowledge-actions mt-6">
+                <el-button type="primary" @click="startPractice(selectedKnowledge.id)">
+                  <el-icon><Check /></el-icon>
+                  开始练习
+                </el-button>
+                <el-button type="info" @click="viewRelatedKnowledge">
+                  <el-icon><Link /></el-icon>
+                  相关知识
+                </el-button>
+                <el-button type="warning" @click="addToFavorites">
+                  <el-icon><Star /></el-icon>
+                  收藏
+                </el-button>
+              </div>
             </div>
-          </template>
-          <div class="knowledge-content">
-            <div class="knowledge-meta mb-4">
-              <el-tag v-if="selectedKnowledge.level === 1" type="primary" effect="plain">一级知识点</el-tag>
-              <el-tag v-else-if="selectedKnowledge.level === 2" type="success" effect="plain">二级知识点</el-tag>
-              <el-tag v-else type="info" effect="plain">三级知识点</el-tag>
-              <span class="knowledge-id">ID: {{ selectedKnowledge.id }}</span>
+          </el-card>
+          <el-card class="knowledge-detail empty-state" v-else style="height: 100%;">
+            <template #header>
+              <div class="card-header">
+                <span>知识详情</span>
+              </div>
+            </template>
+            <div class="empty-content" style="height: calc(100% - 60px);">
+              <el-empty
+                description="请从左侧知识树中选择一个知识点查看详情"
+              >
+                <el-button type="primary" @click="expandAll">展开知识树</el-button>
+              </el-empty>
             </div>
-            <div class="knowledge-description">
-              <h4 class="description-title">知识点描述</h4>
-              <p>{{ selectedKnowledge.description }}</p>
-            </div>
-            <div class="knowledge-actions mt-6">
-              <el-button type="primary" @click="startPractice(selectedKnowledge.id)">
-                <el-icon><Check /></el-icon>
-                开始练习
-              </el-button>
-              <el-button type="info" @click="viewRelatedKnowledge">
-                <el-icon><Link /></el-icon>
-                相关知识
-              </el-button>
-              <el-button type="warning" @click="addToFavorites">
-                <el-icon><Star /></el-icon>
-                收藏
-              </el-button>
-            </div>
-          </div>
-        </el-card>
-        <el-card class="knowledge-detail empty-state" v-else>
-          <template #header>
-            <div class="card-header">
-              <span>知识详情</span>
-            </div>
-          </template>
-          <div class="empty-content">
-            <el-empty
-              description="请从左侧知识树中选择一个知识点查看详情"
-            >
-              <el-button type="primary" @click="expandAll">展开知识树</el-button>
-            </el-empty>
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
   </div>
 </template>
 
@@ -135,7 +133,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useUserStore } from '../store/user'
-import { Check, Link, Star, Search, Book, BookOpen, Bookmark } from '@element-plus/icons-vue'
+import { Check, Link, Star, Search, Document } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const route = useRoute()
@@ -145,6 +144,8 @@ const knowledgeTree = ref([])
 const selectedKnowledge = ref(null)
 const searchKeyword = ref('')
 const breadcrumb = ref([])
+const knowledgeContent = ref(null)
+const loadingContent = ref(false)
 
 const defaultProps = {
   children: 'children',
@@ -205,10 +206,32 @@ const fetchKnowledgeTree = async () => {
     }
     knowledgeTree.value = buildTree(response.data)
     
-    // 如果URL中有id参数，自动选择对应知识点
+    // 检查URL参数
     const id = route.query.id
+    let targetId = null
+    
     if (id) {
-      selectKnowledgeById(parseInt(id))
+      targetId = parseInt(id)
+    } else {
+      // 检查localStorage中存储的上一次学习的知识点
+      const lastKnowledgeId = localStorage.getItem('lastKnowledgeId')
+      if (lastKnowledgeId) {
+        targetId = parseInt(lastKnowledgeId)
+      }
+    }
+    
+    if (targetId) {
+      await selectKnowledgeById(targetId)
+    } else if (knowledgeTree.value.length > 0) {
+      // 默认选择第一个知识点
+      let firstKnowledge = knowledgeTree.value[0]
+      // 如果有子节点，使用第一个子节点
+      if (firstKnowledge.children && firstKnowledge.children.length > 0) {
+        firstKnowledge = firstKnowledge.children[0]
+      }
+      await selectKnowledgeById(firstKnowledge.id)
+      // 更新URL参数
+      router.push({ path: '/study', query: { id: firstKnowledge.id } })
     }
   } catch (error) {
     console.error('获取知识树失败:', error)
@@ -216,7 +239,7 @@ const fetchKnowledgeTree = async () => {
 }
 
 // 根据ID选择知识点
-const selectKnowledgeById = (id) => {
+const selectKnowledgeById = async (id) => {
   const findKnowledge = (items) => {
     for (const item of items) {
       if (item.id === id) {
@@ -236,6 +259,10 @@ const selectKnowledgeById = (id) => {
   if (knowledge) {
     selectedKnowledge.value = knowledge
     updateBreadcrumb(knowledge)
+    // 获取章节内容
+    await fetchKnowledgeContent(knowledge.id)
+    // 存储到localStorage
+    localStorage.setItem('lastKnowledgeId', knowledge.id)
   }
 }
 
@@ -258,11 +285,35 @@ const updateBreadcrumb = (knowledge) => {
 }
 
 // 处理节点点击
-const handleNodeClick = (data) => {
+const handleNodeClick = async (data) => {
   selectedKnowledge.value = data
   updateBreadcrumb(data)
   // 更新URL参数
   router.push({ path: '/study', query: { id: data.id } })
+  
+  // 获取章节内容
+  await fetchKnowledgeContent(data.id)
+}
+
+// 获取知识点章节内容
+const fetchKnowledgeContent = async (knowledgeId) => {
+  loadingContent.value = true
+  try {
+    const response = await axios.get(`/api/knowledge/${knowledgeId}/content`)
+    knowledgeContent.value = response.data
+  } catch (error) {
+    console.error('获取章节内容失败:', error)
+    knowledgeContent.value = null
+  } finally {
+    loadingContent.value = false
+  }
+}
+
+// 格式化内容，将换行符转换为HTML
+const formatContent = (content) => {
+  if (!content) return ''
+  // 将换行符转换为<br>标签
+  return content.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')
 }
 
 // 开始练习
@@ -287,6 +338,16 @@ const handleSearch = () => {
   // 搜索逻辑已经在computed属性中处理
 }
 
+// 展开知识树
+const expandAll = () => {
+  // 由于我们使用的是 default-expand-all 属性，知识树默认已经全部展开
+  // 这里可以添加一些额外的逻辑，比如滚动到顶部
+  const treeElement = document.querySelector('.knowledge-tree-content')
+  if (treeElement) {
+    treeElement.scrollTop = 0
+  }
+}
+
 // 监听路由变化
 watch(() => route.query.id, (newId) => {
   if (newId) {
@@ -301,9 +362,12 @@ onMounted(() => {
 
 <style scoped>
 .study-container {
-  padding: 20px 0;
+  padding: 20px;
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -335,6 +399,16 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.content-container {
+  flex-grow: 1;
+  min-height: 0;
+}
+
+.flex-grow {
+  flex-grow: 1;
+  min-height: 0;
+}
+
 .search-input {
   border-radius: 25px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -352,8 +426,6 @@ onMounted(() => {
 }
 
 .knowledge-tree {
-  height: 680px;
-  overflow-y: auto;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   background: white;
@@ -374,6 +446,8 @@ onMounted(() => {
   border-bottom: 1px solid #f0f0f0;
   background: #fafafa;
   border-radius: 12px 12px 0 0;
+  height: 60px;
+  box-sizing: border-box;
 }
 
 .tree-title {
@@ -395,10 +469,10 @@ onMounted(() => {
 
 .knowledge-tree-content {
   padding: 10px;
+  overflow-y: auto;
 }
 
 .knowledge-detail {
-  min-height: 680px;
   border-radius: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   background: white;
@@ -478,6 +552,53 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
+.content-loading {
+  padding: 20px;
+}
+
+.content-sections {
+  margin-bottom: 32px;
+}
+
+.content-section {
+  margin-bottom: 32px;
+  padding: 24px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #409EFF;
+  transition: all 0.3s ease;
+}
+
+.content-section:hover {
+  background: #f0f9ff;
+  box-shadow: 0 2px 8px rgba(46, 162, 255, 0.15);
+  transform: translateX(4px);
+}
+
+.section-title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 16px;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e4e7ed;
+}
+
+.section-content {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #606266;
+}
+
+.section-content >>> br {
+  margin-bottom: 12px;
+  display: block;
+  content: "";
+}
+
 .knowledge-actions {
   margin-top: 32px;
   display: flex;
@@ -511,33 +632,15 @@ onMounted(() => {
 .tree-node {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 6px 8px;
+  padding: 10px 12px;
   border-radius: 6px;
   transition: all 0.2s ease;
   cursor: pointer;
+  margin: 2px 0;
 }
 
 .tree-node:hover {
-  background: #f0f9ff;
   transform: translateX(4px);
-}
-
-.level-tag {
-  margin-right: 8px;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 10px;
-}
-
-.children-count {
-  margin-left: auto;
-  font-size: 11px;
-  min-width: 20px;
-  text-align: center;
-  background: #ecf5ff;
-  color: #409EFF;
 }
 
 .node-label {
@@ -545,9 +648,15 @@ onMounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 28px;
   color: #303133;
+}
+
+.knowledge-tree-content {
+  padding: 15px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* 滚动条样式 */

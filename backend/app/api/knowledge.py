@@ -1,6 +1,7 @@
 from flask import request, jsonify
 from sqlalchemy.orm import Session
 from app.models.knowledge import KnowledgePoint
+from app.models.content import KnowledgeContent
 from app.utils.database import get_db
 from app.utils.security import get_current_user
 from app.utils.validators import KnowledgeValidator, UserValidator
@@ -112,6 +113,31 @@ async def init_vector_store():
     # 由于没有pgvector扩展，暂时返回成功
     return jsonify({"message": "向量存储初始化完成（模拟）"})
 
+async def get_knowledge_content(knowledge_id: int, db: Session):
+    """获取知识点的章节内容"""
+    knowledge_point = db.query(KnowledgePoint).filter(KnowledgePoint.id == knowledge_id).first()
+    if not knowledge_point:
+        return jsonify({"detail": "知识点不存在"}), 404
+    
+    content_sections = db.query(KnowledgeContent).filter(
+        KnowledgeContent.knowledge_id == knowledge_id
+    ).order_by(KnowledgeContent.order).all()
+    
+    return jsonify({
+        "knowledge_id": knowledge_point.id,
+        "knowledge_title": knowledge_point.title,
+        "knowledge_description": knowledge_point.description,
+        "content_sections": [
+            {
+                "id": section.id,
+                "section_title": section.section_title,
+                "content": section.content,
+                "order": section.order
+            }
+            for section in content_sections
+        ]
+    })
+
 def register_routes(app):
     @app.route('/api/knowledge', methods=['GET'])
     async def flask_get_knowledge_points():
@@ -188,3 +214,8 @@ def register_routes(app):
         if not current_user:
             return jsonify({"detail": "未授权"}), 401
         return await init_vector_store()
+    
+    @app.route('/api/knowledge/<int:knowledge_id>/content', methods=['GET'])
+    async def flask_get_knowledge_content(knowledge_id):
+        db = next(get_db())
+        return await get_knowledge_content(knowledge_id, db)
