@@ -209,7 +209,7 @@
 
 <style scoped>
 .home-container {
-  max-width: 1200px;
+  max-width: 1600px;
   margin: 0 auto;
 }
 

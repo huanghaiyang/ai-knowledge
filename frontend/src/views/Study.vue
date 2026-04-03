@@ -33,7 +33,7 @@
     <div class="content-container flex-grow">
       <el-row :gutter="24" style="height: 100%;">
         <!-- 左侧知识树 -->
-        <el-col :span="8" style="height: 100%;">
+        <el-col :span="7" style="height: 100%;">
           <el-card class="knowledge-tree" style="height: 100%;">
             <template #header>
               <div class="card-header">
@@ -63,7 +63,7 @@
         </el-col>
 
         <!-- 右侧知识详情 -->
-        <el-col :span="16" style="height: 100%;">
+        <el-col :span="17" style="height: 100%;">
           <el-card class="knowledge-detail" v-if="selectedKnowledge" style="height: 100%;">
             <template #header>
               <div class="card-header">
@@ -129,17 +129,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useUserStore } from '../store/user'
-import { Check, Link, Star, Search, Document } from '@element-plus/icons-vue'
+import { Check, Link, Star, Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import MarkdownIt from 'markdown-it'
-import markdownItKatex from 'markdown-it-katex'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
-import 'katex/dist/katex.min.css'
 
 const router = useRouter()
 const route = useRoute()
@@ -151,6 +149,7 @@ const searchKeyword = ref('')
 const breadcrumb = ref([])
 const knowledgeContent = ref(null)
 const loadingContent = ref(false)
+const contentRef = ref(null)
 
 const defaultProps = {
   children: 'children',
@@ -326,7 +325,7 @@ const fetchKnowledgeContent = async (knowledgeId) => {
 const md = new MarkdownIt({
   html: true,        // 允许HTML标签
   linkify: true,     // 自动识别链接
-  typographer: true, // 自动替换一些排版符号
+  typographer: false, // 禁用自动排版，避免影响MathJax
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -337,8 +336,39 @@ const md = new MarkdownIt({
   }
 })
 
-// 添加 KaTeX 插件支持数学公式
-md.use(markdownItKatex)
+// 初始化 MathJax
+let mathJaxLoaded = false
+
+const initMathJax = async () => {
+  if (mathJaxLoaded) return
+  
+  // 等待MathJax加载完成
+  const checkMathJax = () => {
+    return new Promise((resolve) => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        resolve()
+      } else {
+        setTimeout(() => checkMathJax().then(resolve), 100)
+      }
+    })
+  }
+  
+  await checkMathJax()
+  mathJaxLoaded = true
+}
+
+const renderMathJax = async (element) => {
+  if (!mathJaxLoaded) {
+    await initMathJax()
+  }
+  if (window.MathJax && window.MathJax.typesetPromise && element) {
+    try {
+      await window.MathJax.typesetPromise([element])
+    } catch (error) {
+      console.error('MathJax rendering error:', error)
+    }
+  }
+}
 
 // 格式化内容，使用 markdown-it 解析 Markdown
 const formatContent = (content) => {
@@ -346,6 +376,23 @@ const formatContent = (content) => {
   // 使用 markdown-it 解析 Markdown 内容
   return md.render(content)
 }
+
+// 监听内容变化，渲染MathJax
+watch(knowledgeContent, async (newContent) => {
+  if (newContent && newContent.content_sections && newContent.content_sections.length > 0) {
+    // 等待DOM完全更新
+    await nextTick()
+    // 等待一小段时间确保所有内容都已渲染
+    await new Promise(resolve => setTimeout(resolve, 100))
+    // 选择所有section-content元素
+    const contentElements = document.querySelectorAll('.section-content')
+    for (const element of contentElements) {
+      if (element) {
+        await renderMathJax(element)
+      }
+    }
+  }
+}, { deep: true })
 
 // 开始练习
 const startPractice = (knowledgeId) => {
@@ -630,6 +677,249 @@ onMounted(() => {
   color: #606266;
 }
 
+/* Markdown 样式隔离 */
+.section-content :deep(h1),
+.section-content :deep(h2),
+.section-content :deep(h3),
+.section-content :deep(h4),
+.section-content :deep(h5),
+.section-content :deep(h6) {
+  font-weight: bold;
+  margin-top: 1.5em;
+  margin-bottom: 0.8em;
+  color: #2c3e50;
+  line-height: 1.4;
+}
+
+.section-content :deep(h1) {
+  font-size: 2em;
+  border-bottom: 2px solid #e4e7ed;
+  padding-bottom: 0.3em;
+}
+
+.section-content :deep(h2) {
+  font-size: 1.5em;
+  border-bottom: 1px solid #e4e7ed;
+  padding-bottom: 0.3em;
+}
+
+.section-content :deep(h3) {
+  font-size: 1.25em;
+}
+
+.section-content :deep(h4) {
+  font-size: 1.1em;
+}
+
+.section-content :deep(h5) {
+  font-size: 1em;
+}
+
+.section-content :deep(h6) {
+  font-size: 0.9em;
+  color: #909399;
+}
+
+/* 段落样式 */
+.section-content :deep(p) {
+  margin: 1em 0;
+  text-align: justify;
+}
+
+.section-content :deep(p:first-child) {
+  margin-top: 0;
+}
+
+.section-content :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+/* 列表样式 */
+.section-content :deep(ul),
+.section-content :deep(ol) {
+  margin: 1em 0;
+  padding-left: 2em;
+}
+
+.section-content :deep(ul) {
+  list-style-type: disc;
+}
+
+.section-content :deep(ol) {
+  list-style-type: decimal;
+}
+
+.section-content :deep(li) {
+  margin: 0.5em 0;
+  line-height: 1.6;
+}
+
+.section-content :deep(ul ul),
+.section-content :deep(ol ol),
+.section-content :deep(ul ol),
+.section-content :deep(ol ul) {
+  margin: 0.5em 0;
+}
+
+/* 引用样式 */
+.section-content :deep(blockquote) {
+  margin: 1.5em 0;
+  padding: 0.5em 1em;
+  border-left: 4px solid #409EFF;
+  background: #f0f9ff;
+  color: #606266;
+  font-style: italic;
+}
+
+.section-content :deep(blockquote p) {
+  margin: 0;
+}
+
+/* 代码样式 */
+.section-content :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  background: rgba(64, 158, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2c3e50;
+}
+
+.section-content :deep(pre) {
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.section-content :deep(pre code) {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+/* 表格样式 */
+.section-content :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+  font-size: 0.95em;
+}
+
+.section-content :deep(table th),
+.section-content :deep(table td) {
+  border: 1px solid #e4e7ed;
+  padding: 12px;
+  text-align: left;
+}
+
+.section-content :deep(table th) {
+  background: #f5f7fa;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.section-content :deep(table tr:nth-child(even)) {
+  background: #fafafa;
+}
+
+.section-content :deep(table tr:hover) {
+  background: #f0f9ff;
+}
+
+/* 链接样式 */
+.section-content :deep(a) {
+  color: #409EFF;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.section-content :deep(a:hover) {
+  color: #66b1ff;
+  border-bottom-color: #66b1ff;
+}
+
+.section-content :deep(a:visited) {
+  color: #409EFF;
+}
+
+/* 图片样式 */
+.section-content :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 分隔线样式 */
+.section-content :deep(hr) {
+  border: none;
+  border-top: 2px solid #e4e7ed;
+  margin: 2em 0;
+}
+
+/* 强调样式 */
+.section-content :deep(strong) {
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.section-content :deep(em) {
+  font-style: italic;
+  color: #606266;
+}
+
+/* 删除线样式 */
+.section-content :deep(del) {
+  text-decoration: line-through;
+  color: #909399;
+}
+
+/* 行内代码样式 */
+.section-content :deep(kbd) {
+  background: #f5f5f5;
+  border: 1px solid #dcdcdc;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.9em;
+  font-family: 'Courier New', Courier, monospace;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 任务列表样式 */
+.section-content :deep(input[type="checkbox"]) {
+  margin-right: 8px;
+  cursor: pointer;
+}
+
+.section-content :deep(li input[type="checkbox"]) {
+  margin-left: -20px;
+}
+
+/* 定义列表样式 */
+.section-content :deep(dl) {
+  margin: 1em 0;
+}
+
+.section-content :deep(dt) {
+  font-weight: bold;
+  color: #2c3e50;
+  margin-top: 0.8em;
+}
+
+.section-content :deep(dd) {
+  margin-left: 2em;
+  color: #606266;
+}
+
 .section-content >>> br {
   margin-bottom: 12px;
   display: block;
@@ -775,56 +1065,298 @@ onMounted(() => {
   }
 }
 
-/* KaTeX 数学公式样式 */
-.section-content .katex {
+/* MathJax 数学公式样式隔离 */
+.section-content :deep(.mjx-chtml) {
   font-size: 1.1em;
   color: #2c3e50;
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif;
+  line-height: 1.2;
 }
 
-.section-content .katex-display {
+.section-content :deep(.mjx-chtml .mjx-math) {
+  margin: 0;
+}
+
+.section-content :deep(.mjx-chtml .mjx-math > mjx-container) {
+  overflow-x: auto;
+}
+
+/* 块级公式样式 */
+.section-content :deep(.mjx-chtml .mjx-display) {
   margin: 1.5em 0;
   overflow-x: auto;
-  padding: 1em;
-  background: #f8f9fa;
+  padding: 1.2em;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 8px;
   border-left: 4px solid #409EFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.section-content .katex-display > .katex {
-  text-align: left;
-}
-
-.section-content .katex-display .katex > .katex-html {
+.section-content :deep(.mjx-chtml .mjx-display > mjx-container) {
   margin: 0;
 }
 
 /* 行内公式样式 */
-.section-content .katex-inline {
-  padding: 0 2px;
-  background: rgba(64, 158, 255, 0.05);
+.section-content :deep(.mjx-chtml .mjx-math) {
+  padding: 2px 4px;
+  background: rgba(64, 158, 255, 0.08);
+  border-radius: 4px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* MathJax 公式元素样式 */
+.section-content :deep(.mjx-chtml .mjx-mrow) {
+  position: relative;
+  white-space: nowrap;
+  width: min-content;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mi) {
+  font-style: italic;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mo) {
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mn) {
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mtext) {
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif;
+}
+
+/* 分数样式 */
+.section-content :deep(.mjx-chtml .mjx-frac) {
+  padding: 0 0.1em;
+}
+
+.section-content :deep(.mjx-chtml .mjx-frac .mjx-num) {
+  display: block;
+  text-align: center;
+}
+
+.section-content :deep(.mjx-chtml .mjx-frac .mjx-den) {
+  display: block;
+  text-align: center;
+  border-top: 1px solid #2c3e50;
+}
+
+.section-content :deep(.mjx-chtml .mjx-frac .mjx-dbox) {
+  border-top: 1px solid #2c3e50;
+}
+
+/* 上下标样式 */
+.section-content :deep(.mjx-chtml .mjx-sup) {
+  font-size: 0.7em;
+  vertical-align: super;
+}
+
+.section-content :deep(.mjx-chtml .mjx-sub) {
+  font-size: 0.7em;
+  vertical-align: sub;
+}
+
+/* 求和、积分等符号 */
+.section-content :deep(.mjx-chtml .mjx-op) {
+  font-family: 'MathJax_Size1', 'MathJax_Main', 'Times New Roman', Times, serif;
+}
+
+.section-content :deep(.mjx-chtml .mjx-op .mjx-large-op) {
+  font-size: 1.2em;
+}
+
+/* 矩阵样式 */
+.section-content :deep(.mjx-chtml .mjx-mtable) {
+  border-spacing: 0;
+  margin: 0.5em 0;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mtable .mjx-mtr) {
+  display: flex;
+}
+
+.section-content :deep(.mjx-chtml .mjx-mtable .mjx-mtd) {
+  padding: 0 0.2em;
+}
+
+/* 括号样式 */
+.section-content :deep(.mjx-chtml .mjx-mo) {
+  font-family: 'MathJax_Size1', 'MathJax_Main', 'Times New Roman', Times, serif;
+}
+
+/* 空格样式 */
+.section-content :deep(.mjx-chtml .mjx-mspace) {
+  display: inline-block;
+}
+
+/* 错误提示样式 */
+.section-content :deep(.mjx-chtml .mjx-merror) {
+  color: #cc0000;
+  background: #ffeeee;
+  padding: 2px 4px;
   border-radius: 3px;
+  border: 1px solid #ffcccc;
+}
+
+/* SVG渲染样式 */
+.section-content :deep(.mjx-svg) {
+  font-size: 1.1em;
+  color: #2c3e50;
+  font-family: 'MathJax_Main', 'Times New Roman', Times, serif;
+  line-height: 1.2;
+}
+
+.section-content :deep(.mjx-svg .mjx-math) {
+  margin: 0;
+}
+
+.section-content :deep(.mjx-svg .mjx-display) {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  padding: 1.2em;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border-left: 4px solid #409EFF;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.section-content :deep(.mjx-svg .mjx-math) {
+  padding: 2px 4px;
+  background: rgba(64, 158, 255, 0.08);
+  border-radius: 4px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.section-content :deep(.mjx-svg svg) {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  height: auto;
 }
 
 /* 代码块样式 */
-.section-content pre {
+.section-content :deep(pre) {
   background: #f5f5f5;
   border: 1px solid #e8e8e8;
   border-radius: 8px;
   padding: 16px;
   overflow-x: auto;
-  margin: 16px 0;
-  font-family: 'Courier New', Courier, monospace;
-}
-
-.section-content code {
+  margin: 1.5em 0;
   font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.section-content pre code {
+.section-content :deep(code) {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9em;
+  background: rgba(64, 158, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #2c3e50;
+}
+
+.section-content :deep(pre code) {
   background: none;
   padding: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+/* 代码高亮样式 */
+.section-content :deep(.hljs) {
+  background: transparent;
+  padding: 0;
+}
+
+.section-content :deep(.hljs-comment),
+.section-content :deep(.hljs-quote) {
+  color: #998;
+  font-style: italic;
+}
+
+.section-content :deep(.hljs-keyword),
+.section-content :deep(.hljs-selector-tag),
+.section-content :deep(.hljs-subst) {
+  color: #333;
+  font-weight: bold;
+}
+
+.section-content :deep(.hljs-number),
+.section-content :deep(.hljs-literal),
+.section-content :deep(.hljs-variable),
+.section-content :deep(.hljs-template-variable),
+.section-content :deep(.hljs-tag .hljs-attr) {
+  color: #008080;
+}
+
+.section-content :deep(.hljs-string),
+.section-content :deep(.hljs-doctag) {
+  color: #d14;
+}
+
+.section-content :deep(.hljs-title),
+.section-content :deep(.hljs-section),
+.section-content :deep(.hljs-selector-id) {
+  color: #900;
+  font-weight: bold;
+}
+
+.section-content :deep(.hljs-subst) {
+  font-weight: normal;
+}
+
+.section-content :deep(.hljs-type),
+.section-content :deep(.hljs-class .hljs-title) {
+  color: #458;
+  font-weight: bold;
+}
+
+.section-content :deep(.hljs-tag),
+.section-content :deep(.hljs-name),
+.section-content :deep(.hljs-attribute) {
+  color: #000080;
+  font-weight: normal;
+}
+
+.section-content :deep(.hljs-regexp),
+.section-content :deep(.hljs-link) {
+  color: #009926;
+}
+
+.section-content :deep(.hljs-symbol),
+.section-content :deep(.hljs-bullet) {
+  color: #990073;
+}
+
+.section-content :deep(.hljs-built_in),
+.section-content :deep(.hljs-builtin-name) {
+  color: #0086b3;
+}
+
+.section-content :deep(.hljs-meta) {
+  color: #999;
+  font-weight: bold;
+}
+
+.section-content :deep(.hljs-deletion) {
+  background: #fdd;
+}
+
+.section-content :deep(.hljs-addition) {
+  background: #dfd;
+}
+
+.section-content :deep(.hljs-emphasis) {
+  font-style: italic;
+}
+
+.section-content :deep(.hljs-strong) {
+  font-weight: bold;
 }
 
 /* 加载动画 */
