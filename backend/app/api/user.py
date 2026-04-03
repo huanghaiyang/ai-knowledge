@@ -93,13 +93,19 @@ def register_routes(app):
         data = request.get_json()
         client_ip = request.remote_addr
         db = next(get_db())
-        return await register(data, client_ip, db)
+        try:
+            return await register(data, client_ip, db)
+        finally:
+            db.close()
     
     @app.route('/api/user/login', methods=['POST'])
     async def flask_login():
         data = request.get_json()
         db = next(get_db())
-        return await login(data, db)
+        try:
+            return await login(data, db)
+        finally:
+            db.close()
     
     @app.route('/api/user/me', methods=['GET'])
     async def flask_get_current_user_info():
@@ -123,4 +129,7 @@ def register_routes(app):
             return jsonify({"detail": "未授权"}), 401
         data = request.get_json()
         db = next(get_db())
-        return await update_user_info(data, current_user, db)
+        try:
+            return await update_user_info(data, current_user, db)
+        finally:
+            db.close()

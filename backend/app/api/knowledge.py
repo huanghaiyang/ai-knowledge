@@ -15,7 +15,8 @@ async def get_knowledge_points(db: Session):
             "title": kp.title,
             "description": kp.description,
             "parent_id": kp.parent_id,
-            "level": kp.level
+            "level": kp.level,
+            "order": kp.order
         } for kp in knowledge_points
     ])
 
@@ -28,7 +29,8 @@ async def get_knowledge_point(knowledge_id: int, db: Session):
         "title": knowledge_point.title,
         "description": knowledge_point.description,
         "parent_id": knowledge_point.parent_id,
-        "level": knowledge_point.level
+        "level": knowledge_point.level,
+        "order": knowledge_point.order
     })
 
 async def create_knowledge_point(data: dict, db: Session):
@@ -37,6 +39,7 @@ async def create_knowledge_point(data: dict, db: Session):
     description = UserValidator.sanitize_input(data.get('description', ''))
     parent_id = data.get('parent_id')
     level = data.get('level', 1)
+    order = data.get('order', 0)
     
     # 验证知识点标题
     is_valid, message = KnowledgeValidator.validate_title(title)
@@ -52,7 +55,8 @@ async def create_knowledge_point(data: dict, db: Session):
         title=title,
         description=description,
         parent_id=parent_id,
-        level=level
+        level=level,
+        order=order
     )
     db.add(new_knowledge_point)
     db.commit()
@@ -62,7 +66,8 @@ async def create_knowledge_point(data: dict, db: Session):
         "title": new_knowledge_point.title,
         "description": new_knowledge_point.description,
         "parent_id": new_knowledge_point.parent_id,
-        "level": new_knowledge_point.level
+        "level": new_knowledge_point.level,
+        "order": new_knowledge_point.order
     })
 
 async def update_knowledge_point(knowledge_id: int, data: dict, db: Session):
@@ -77,6 +82,8 @@ async def update_knowledge_point(knowledge_id: int, data: dict, db: Session):
         knowledge_point.parent_id = data['parent_id']
     if 'level' in data:
         knowledge_point.level = data['level']
+    if 'order' in data:
+        knowledge_point.order = data['order']
     db.commit()
     db.refresh(knowledge_point)
     return jsonify({
@@ -84,7 +91,8 @@ async def update_knowledge_point(knowledge_id: int, data: dict, db: Session):
         "title": knowledge_point.title,
         "description": knowledge_point.description,
         "parent_id": knowledge_point.parent_id,
-        "level": knowledge_point.level
+        "level": knowledge_point.level,
+        "order": knowledge_point.order
     })
 
 async def delete_knowledge_point(knowledge_id: int, db: Session):
@@ -100,6 +108,14 @@ async def search_knowledge(query: str):
     if not query:
         return jsonify({"detail": "搜索关键词不能为空"}), 400
     
+    # 解码URL编码的查询参数
+    import urllib.parse
+    try:
+        query = urllib.parse.unquote(query, encoding='utf-8')
+    except Exception as e:
+        print(f"解码查询参数时出错: {e}")
+    
+    print(f"解码后的搜索查询: {query}")
     results = VectorService.search_similar_knowledge(query)
     return jsonify(results)
 
@@ -142,12 +158,18 @@ def register_routes(app):
     @app.route('/api/knowledge', methods=['GET'])
     async def flask_get_knowledge_points():
         db = next(get_db())
-        return await get_knowledge_points(db)
+        try:
+            return await get_knowledge_points(db)
+        finally:
+            db.close()
     
     @app.route('/api/knowledge/<int:knowledge_id>', methods=['GET'])
     async def flask_get_knowledge_point(knowledge_id):
         db = next(get_db())
-        return await get_knowledge_point(knowledge_id, db)
+        try:
+            return await get_knowledge_point(knowledge_id, db)
+        finally:
+            db.close()
     
     @app.route('/api/knowledge', methods=['POST'])
     async def flask_create_knowledge_point():
@@ -160,7 +182,10 @@ def register_routes(app):
             return jsonify({"detail": "未授权"}), 401
         data = request.get_json()
         db = next(get_db())
-        return await create_knowledge_point(data, db)
+        try:
+            return await create_knowledge_point(data, db)
+        finally:
+            db.close()
     
     @app.route('/api/knowledge/<int:knowledge_id>', methods=['PUT'])
     async def flask_update_knowledge_point(knowledge_id):
@@ -173,7 +198,10 @@ def register_routes(app):
             return jsonify({"detail": "未授权"}), 401
         data = request.get_json()
         db = next(get_db())
-        return await update_knowledge_point(knowledge_id, data, db)
+        try:
+            return await update_knowledge_point(knowledge_id, data, db)
+        finally:
+            db.close()
     
     @app.route('/api/knowledge/<int:knowledge_id>', methods=['DELETE'])
     async def flask_delete_knowledge_point(knowledge_id):
@@ -185,11 +213,23 @@ def register_routes(app):
         if not current_user:
             return jsonify({"detail": "未授权"}), 401
         db = next(get_db())
-        return await delete_knowledge_point(knowledge_id, db)
+        try:
+            return await delete_knowledge_point(knowledge_id, db)
+        finally:
+            db.close()
     
     @app.route('/api/knowledge/search', methods=['GET'])
     async def flask_search_knowledge():
-        query = request.args.get('q', '')
+        # 直接从原始查询字符串中获取参数
+        import urllib.parse
+        query = ''
+        if 'q' in request.args:
+            query = request.args['q']
+            # 确保使用UTF-8编码解码
+            try:
+                query = urllib.parse.unquote(query.encode('latin1').decode('utf-8'))
+            except Exception as e:
+                print(f"解码查询参数时出错: {e}")
         print(f"查询参数: {query}")
         return await search_knowledge(query)
     
@@ -218,4 +258,7 @@ def register_routes(app):
     @app.route('/api/knowledge/<int:knowledge_id>/content', methods=['GET'])
     async def flask_get_knowledge_content(knowledge_id):
         db = next(get_db())
-        return await get_knowledge_content(knowledge_id, db)
+        try:
+            return await get_knowledge_content(knowledge_id, db)
+        finally:
+            db.close()

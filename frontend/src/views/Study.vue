@@ -135,6 +135,9 @@ import axios from 'axios'
 import { useUserStore } from '../store/user'
 import { Check, Link, Star, Search, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import MarkdownIt from 'markdown-it'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 
 const router = useRouter()
 const route = useRoute()
@@ -192,6 +195,13 @@ const filteredKnowledgeTree = computed(() => {
 const fetchKnowledgeTree = async () => {
   try {
     const response = await axios.get('/api/knowledge')
+    // 按照order字段排序
+    const sortedItems = response.data.sort((a, b) => {
+      // 如果没有order字段，使用id排序
+      const orderA = a.order !== undefined ? a.id : a.order
+      const orderB = b.order !== undefined ? b.id : b.order
+      return orderA - orderB
+    })
     // 构建知识树结构
     const buildTree = (items, parentId = null) => {
       return items
@@ -201,10 +211,11 @@ const fetchKnowledgeTree = async () => {
           title: item.title,
           description: item.description,
           level: item.level,
+          order: item.order,
           children: buildTree(items, item.id)
         }))
     }
-    knowledgeTree.value = buildTree(response.data)
+    knowledgeTree.value = buildTree(sortedItems)
     
     // 检查URL参数
     const id = route.query.id
@@ -309,11 +320,26 @@ const fetchKnowledgeContent = async (knowledgeId) => {
   }
 }
 
-// 格式化内容，将换行符转换为HTML
+// 初始化 markdown-it 实例
+const md = new MarkdownIt({
+  html: true,        // 允许HTML标签
+  linkify: true,     // 自动识别链接
+  typographer: true, // 自动替换一些排版符号
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return hljs.highlight(str, { language: lang }).value
+      } catch (__) {}
+    }
+    return '' // 使用默认处理
+  }
+})
+
+// 格式化内容，使用 markdown-it 解析 Markdown
 const formatContent = (content) => {
   if (!content) return ''
-  // 将换行符转换为<br>标签
-  return content.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>')
+  // 使用 markdown-it 解析 Markdown 内容
+  return md.render(content)
 }
 
 // 开始练习
@@ -368,6 +394,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .page-header {
@@ -402,6 +431,9 @@ onMounted(() => {
 .content-container {
   flex-grow: 1;
   min-height: 0;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .flex-grow {
@@ -736,6 +768,28 @@ onMounted(() => {
   .knowledge-actions .el-button {
     width: 100%;
   }
+}
+
+/* 代码块样式 */
+.section-content pre {
+  background: #f5f5f5;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.section-content code {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.section-content pre code {
+  background: none;
+  padding: 0;
 }
 
 /* 加载动画 */

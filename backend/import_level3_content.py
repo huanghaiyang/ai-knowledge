@@ -1,0 +1,65 @@
+import os
+import sys
+
+# 添加当前目录到 Python 路径
+sys.path.append(os.path.dirname(__file__))
+
+from knowledge_content_manager import save_knowledge_content
+
+def import_level3_content():
+    """从Markdown文件导入三级知识点的教学内容"""
+    # Markdown文件目录
+    md_dir = os.path.join(os.path.dirname(__file__), 'content', 'markdown')
+    
+    # 三级知识点标题和对应的Markdown文件
+    knowledge_files = {
+        # 人工智能定义与发展的子知识点
+        "人工智能的定义": "人工智能的定义.md",
+        "人工智能的发展历程": "人工智能的发展历程.md",
+        "人工智能的主要分支": "人工智能的主要分支.md",
+        "人工智能的应用领域": "人工智能的应用领域.md",
+        
+        # 机器学习基础的子知识点
+        "机器学习的定义": "机器学习的定义.md",
+        "机器学习的类型": "机器学习的类型.md",
+        "机器学习的基本流程": "机器学习的基本流程.md",
+        "机器学习的常见算法": "机器学习的常见算法.md",
+        
+        # 深度学习基础的子知识点
+        "深度学习的定义": "深度学习的定义.md",
+        "神经网络的基本结构": "神经网络的基本结构.md",
+        "深度学习的常见模型": "深度学习的常见模型.md",
+        "深度学习的训练方法": "深度学习的训练方法.md",
+        
+        # 自然语言处理的子知识点
+        "自然语言处理的定义": "自然语言处理的定义.md",
+        "自然语言处理的主要任务": "自然语言处理的主要任务.md",
+        "自然语言处理的技术方法": "自然语言处理的技术方法.md",
+        "自然语言处理的应用": "自然语言处理的应用.md",
+        
+        # 计算机视觉的子知识点
+        "计算机视觉的定义": "计算机视觉的定义.md",
+        "计算机视觉的主要任务": "计算机视觉的主要任务.md",
+        "计算机视觉的技术方法": "计算机视觉的技术方法.md",
+        "计算机视觉的应用": "计算机视觉的应用.md",
+        
+        # 人工智能伦理与安全的子知识点
+        "人工智能的伦理问题": "人工智能的伦理问题.md",
+        "人工智能的安全挑战": "人工智能的安全挑战.md",
+        "人工智能的监管政策": "人工智能的监管政策.md",
+        "人工智能的未来发展": "人工智能的未来发展.md"
+    }
+    
+    # 导入每个知识点的内容
+    for knowledge_title, md_file in knowledge_files.items():
+        md_path = os.path.join(md_dir, md_file)
+        if os.path.exists(md_path):
+            print(f"导入知识点: {knowledge_title}")
+            save_knowledge_content(knowledge_title, md_path)
+        else:
+            print(f"未找到Markdown文件: {md_path}")
+    
+    print("所有三级知识点的教学内容已导入")
+
+if __name__ == "__main__":
+    import_level3_content()

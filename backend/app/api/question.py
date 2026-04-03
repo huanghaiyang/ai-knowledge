@@ -153,12 +153,18 @@ def register_routes(app):
         knowledge_id = request.args.get('knowledge_id', type=int)
         difficulty = request.args.get('difficulty')
         db = next(get_db())
-        return await get_questions(knowledge_id, difficulty, db)
+        try:
+            return await get_questions(knowledge_id, difficulty, db)
+        finally:
+            db.close()
     
     @app.route('/api/question/<int:question_id>', methods=['GET'])
     async def flask_get_question(question_id):
         db = next(get_db())
-        return await get_question(question_id, db)
+        try:
+            return await get_question(question_id, db)
+        finally:
+            db.close()
     
     @app.route('/api/question/ai-generate', methods=['POST'])
     async def flask_generate_question():
@@ -174,7 +180,10 @@ def register_routes(app):
         difficulty = data.get('difficulty')
         question_type = data.get('question_type')
         db = next(get_db())
-        return await generate_question(knowledge_id, difficulty, question_type, db)
+        try:
+            return await generate_question(knowledge_id, difficulty, question_type, db)
+        finally:
+            db.close()
     
     @app.route('/api/question', methods=['POST'])
     async def flask_create_question():
@@ -187,7 +196,10 @@ def register_routes(app):
             return jsonify({"detail": "未授权"}), 401
         data = request.get_json()
         db = next(get_db())
-        return await create_question(data, db)
+        try:
+            return await create_question(data, db)
+        finally:
+            db.close()
     
     @app.route('/api/question/<int:question_id>', methods=['PUT'])
     async def flask_update_question(question_id):
@@ -200,7 +212,10 @@ def register_routes(app):
             return jsonify({"detail": "未授权"}), 401
         data = request.get_json()
         db = next(get_db())
-        return await update_question(question_id, data, db)
+        try:
+            return await update_question(question_id, data, db)
+        finally:
+            db.close()
     
     @app.route('/api/question/<int:question_id>', methods=['DELETE'])
     async def flask_delete_question(question_id):
@@ -212,4 +227,7 @@ def register_routes(app):
         if not current_user:
             return jsonify({"detail": "未授权"}), 401
         db = next(get_db())
-        return await delete_question(question_id, db)
+        try:
+            return await delete_question(question_id, db)
+        finally:
+            db.close()

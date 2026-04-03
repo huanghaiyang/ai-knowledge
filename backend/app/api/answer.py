@@ -81,7 +81,12 @@ def register_routes(app):
         if not hasattr(g, 'db'):
             g.db = next(get_db())
         db = g.db
-        return await submit_answer(data, g.current_user.id, db)
+        try:
+            return await submit_answer(data, g.current_user.id, db)
+        finally:
+            if hasattr(g, 'db'):
+                g.db.close()
+                delattr(g, 'db')
     
     @app.route('/api/answer/user-answers', methods=['GET'])
     @login_required
@@ -89,7 +94,12 @@ def register_routes(app):
         if not hasattr(g, 'db'):
             g.db = next(get_db())
         db = g.db
-        return await get_user_answers(g.current_user.id, db)
+        try:
+            return await get_user_answers(g.current_user.id, db)
+        finally:
+            if hasattr(g, 'db'):
+                g.db.close()
+                delattr(g, 'db')
     
     @app.route('/api/answer/user-answers/incorrect', methods=['GET'])
     @login_required
@@ -97,4 +107,9 @@ def register_routes(app):
         if not hasattr(g, 'db'):
             g.db = next(get_db())
         db = g.db
-        return await get_incorrect_answers(g.current_user.id, db)
+        try:
+            return await get_incorrect_answers(g.current_user.id, db)
+        finally:
+            if hasattr(g, 'db'):
+                g.db.close()
+                delattr(g, 'db')

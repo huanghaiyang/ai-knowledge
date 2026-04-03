@@ -16,11 +16,7 @@ Base.metadata.create_all(bind=engine)
 async def root():
     return jsonify({"message": "AI知识学习与智能测评系统API"})
 
-# 请求钩子，在请求结束时关闭数据库会话
-@app.teardown_appcontext
-def teardown_db(error):
-    if hasattr(g, 'db'):
-        g.db.close()
+# 数据库会话由get_db()函数自动管理，不需要额外的teardown钩子
 
 # 导入路由
 from app.api import user, knowledge, question, answer, report

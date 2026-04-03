@@ -6,6 +6,7 @@ class KnowledgePointBase(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
     level: int
+    order: int = 0
 
 class KnowledgePointCreate(KnowledgePointBase):
     pass
@@ -15,6 +16,7 @@ class KnowledgePointUpdate(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
     level: Optional[int] = None
+    order: Optional[int] = None
 
 class KnowledgePointResponse(KnowledgePointBase):
     id: int

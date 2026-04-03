@@ -23,7 +23,10 @@ def register_routes(app):
         if not current_user:
             return jsonify({"detail": "未授权"}), 401
         db = next(get_db())
-        return await get_learning_report(current_user.id, db)
+        try:
+            return await get_learning_report(current_user.id, db)
+        finally:
+            db.close()
     
     @app.route('/api/report/weak-points', methods=['GET'])
     async def flask_get_weak_points():
@@ -35,4 +38,7 @@ def register_routes(app):
         if not current_user:
             return jsonify({"detail": "未授权"}), 401
         db = next(get_db())
-        return await get_weak_points(current_user.id, db)
+        try:
+            return await get_weak_points(current_user.id, db)
+        finally:
+            db.close()

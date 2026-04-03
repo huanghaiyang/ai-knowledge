@@ -10,9 +10,9 @@ DATABASE_URL = f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_size=10,  # 连接池大小
-    max_overflow=20,  # 最大溢出连接数
-    pool_timeout=30,  # 连接超时时间（秒）
+    pool_size=20,  # 连接池大小
+    max_overflow=40,  # 最大溢出连接数
+    pool_timeout=60,  # 连接超时时间（秒）
     pool_recycle=1800,  # 连接回收时间（秒），避免连接过期
     echo=False  # 是否打印SQL语句
 )

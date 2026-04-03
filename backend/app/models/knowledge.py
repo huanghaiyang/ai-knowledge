@@ -10,6 +10,7 @@ class KnowledgePoint(Base):
     description = Column(Text)
     parent_id = Column(Integer, ForeignKey("knowledge_points.id"), nullable=True)
     level = Column(Integer, nullable=False)  # 1: 一级知识点, 2: 二级知识点, 3: 三级知识点
+    order = Column(Integer, default=0)  # 知识点排序
     
     # 关系
     parent = relationship("KnowledgePoint", remote_side=[id], backref="children")
