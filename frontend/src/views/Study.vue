@@ -136,8 +136,10 @@ import { useUserStore } from '../store/user'
 import { Check, Link, Star, Search, Document } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import MarkdownIt from 'markdown-it'
+import markdownItKatex from 'markdown-it-katex'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
+import 'katex/dist/katex.min.css'
 
 const router = useRouter()
 const route = useRoute()
@@ -334,6 +336,9 @@ const md = new MarkdownIt({
     return '' // 使用默认处理
   }
 })
+
+// 添加 KaTeX 插件支持数学公式
+md.use(markdownItKatex)
 
 // 格式化内容，使用 markdown-it 解析 Markdown
 const formatContent = (content) => {
@@ -768,6 +773,36 @@ onMounted(() => {
   .knowledge-actions .el-button {
     width: 100%;
   }
+}
+
+/* KaTeX 数学公式样式 */
+.section-content .katex {
+  font-size: 1.1em;
+  color: #2c3e50;
+}
+
+.section-content .katex-display {
+  margin: 1.5em 0;
+  overflow-x: auto;
+  padding: 1em;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #409EFF;
+}
+
+.section-content .katex-display > .katex {
+  text-align: left;
+}
+
+.section-content .katex-display .katex > .katex-html {
+  margin: 0;
+}
+
+/* 行内公式样式 */
+.section-content .katex-inline {
+  padding: 0 2px;
+  background: rgba(64, 158, 255, 0.05);
+  border-radius: 3px;
 }
 
 /* 代码块样式 */
