@@ -77,11 +77,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
-import { useUserStore } from '../store/user'
+import request from '../utils/request'
 import { ElMessage } from 'element-plus'
-
-const userStore = useUserStore()
 
 const wrongAnswers = ref([])
 const total = ref(0)
@@ -93,11 +90,7 @@ const reviewAnswer = ref('')
 
 const fetchWrongAnswers = async () => {
   try {
-    const response = await axios.get('/api/answer/user-answers/incorrect', {
-      headers: {
-        Authorization: `Bearer ${userStore.token}`
-      }
-    })
+    const response = await request.get('/answer/user-answers/incorrect')
     wrongAnswers.value = response.data.map(item => ({
       id: item.id,
       questionId: item.question_id,
