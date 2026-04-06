@@ -80,7 +80,7 @@
                 <el-skeleton :rows="10" animated />
               </div>
               <div v-else-if="knowledgeContent && knowledgeContent.content_sections && knowledgeContent.content_sections.length > 0" class="content-sections">
-                <div v-for="(section, index) in knowledgeContent.content_sections" :key="section.id" class="content-section">
+                <div v-for="(section, index) in knowledgeContent.content_sections" :key="section.id" class="content-section" :data-section-id="section.id">
                   <h4 class="section-title">{{ section.section_title }}</h4>
                   <div class="section-content" v-html="formatContent(section.content)"></div>
                 </div>
@@ -125,11 +125,28 @@
         </el-col>
       </el-row>
     </div>
+    
+    <!-- 笔记输入框 -->
+    <div 
+      v-if="isNoteInputVisible" 
+      class="note-input"
+      :style="{ left: noteInputPosition.x + 'px', top: noteInputPosition.y + 'px' }"
+    >
+      <textarea 
+        v-model="noteInputContent" 
+        placeholder="添加笔记..."
+        class="note-textarea"
+      ></textarea>
+      <div class="note-actions">
+        <el-button type="primary" @click="saveHighlight">保存</el-button>
+        <el-button @click="cancelHighlight">取消</el-button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import axios from 'axios'
 import { useUserStore } from '../store/user'
@@ -151,9 +168,347 @@ const knowledgeContent = ref(null)
 const loadingContent = ref(false)
 const contentRef = ref(null)
 
+// 高亮相关状态
+const highlights = ref([])
+const isNoteInputVisible = ref(false)
+const noteInputContent = ref('')
+const selectedText = ref('')
+const currentHighlightId = ref('')
+const noteInputPosition = ref({ x: 0, y: 0 })
+
 const defaultProps = {
   children: 'children',
   label: 'title'
+}
+
+// 处理文本选择
+const handleTextSelection = () => {
+  const selection = window.getSelection()
+  if (selection && selection.toString().trim()) {
+    selectedText.value = selection.toString().trim()
+    const range = selection.getRangeAt(0)
+    
+    // 检查是否选择了公式
+    const commonAncestor = range.commonAncestorContainer
+    const mathElement = commonAncestor.closest ? commonAncestor.closest('.mjx-chtml, .mjx-svg, .MathJax') : null
+    
+    // 计算输入框位置
+    const rect = range.getBoundingClientRect()
+    noteInputPosition.value = {
+      x: rect.left + window.scrollX,
+      y: rect.bottom + window.scrollY + 10
+    }
+    
+    // 显示笔记输入框
+    isNoteInputVisible.value = true
+  }
+}
+
+// 生成唯一ID
+const generateId = () => {
+  return 'hl_' + Date.now() + '_' + Math.floor(Math.random() * 1000)
+}
+
+// 计算高亮位置
+const getHighlightPosition = (range, sectionElement) => {
+  // 创建一个从section开始到高亮开始的范围
+  const startRange = document.createRange()
+  startRange.setStart(sectionElement, 0)
+  startRange.setEnd(range.startContainer, range.startOffset)
+  
+  // 计算起始位置
+  const startPos = startRange.toString().length
+  
+  // 计算结束位置
+  const endPos = startPos + range.toString().length
+  
+  return { startPos, endPos }
+}
+
+// 获取高亮上下文
+const getHighlightContext = (range, contextLength = 50) => {
+  // 获取高亮前的上下文
+  const startContextRange = document.createRange()
+  const startContainer = range.startContainer
+  const startOffset = Math.max(0, range.startOffset - contextLength)
+  startContextRange.setStart(startContainer, startOffset)
+  startContextRange.setEnd(startContainer, range.startOffset)
+  const startContext = startContextRange.toString()
+  
+  // 获取高亮后的上下文
+  const endContextRange = document.createRange()
+  const endContainer = range.endContainer
+  const endOffset = Math.min(endContainer.textContent.length, range.endOffset + contextLength)
+  endContextRange.setStart(endContainer, range.endOffset)
+  endContextRange.setEnd(endContainer, endOffset)
+  const endContext = endContextRange.toString()
+  
+  return { startContext, endContext }
+}
+
+// 保存高亮和笔记
+const saveHighlight = async () => {
+  if (!selectedText.value) return
+  
+  const highlightId = generateId()
+  currentHighlightId.value = highlightId
+  
+  // 创建高亮元素
+  const sel = window.getSelection()
+  if (sel) {
+    const range = sel.getRangeAt(0)
+    const commonAncestor = range.commonAncestorContainer
+    const mathElement = commonAncestor.closest ? commonAncestor.closest('.mjx-chtml, .mjx-svg, .MathJax') : null
+    
+    // 获取section元素
+    const sectionElement = document.querySelector('.content-section')
+    let sectionId = null
+    let startPos = 0
+    let endPos = 0
+    let startContext = ''
+    let endContext = ''
+    
+    if (sectionElement) {
+      // 计算位置
+      const position = getHighlightPosition(range, sectionElement)
+      startPos = position.startPos
+      endPos = position.endPos
+      
+      // 获取上下文
+      const context = getHighlightContext(range)
+      startContext = context.startContext
+      endContext = context.endContext
+      
+      // 获取章节ID
+      sectionId = sectionElement.dataset.sectionId
+    }
+    
+    if (mathElement) {
+      // 处理公式高亮
+      const mathHighlight = document.createElement('div')
+      mathHighlight.className = 'formula-highlight'
+      mathHighlight.dataset.id = highlightId
+      mathHighlight.style.position = 'relative'
+      mathHighlight.style.display = 'inline-block'
+      mathHighlight.style.margin = '4px 0'
+      
+      // 创建背景节点
+      const bgNode = document.createElement('div')
+      bgNode.className = 'highlight-bg'
+      bgNode.style.position = 'absolute'
+      bgNode.style.top = '0'
+      bgNode.style.left = '0'
+      bgNode.style.right = '0'
+      bgNode.style.bottom = '0'
+      bgNode.style.backgroundColor = 'rgba(255, 255, 204, 0.7)'
+      bgNode.style.borderRadius = '6px'
+      bgNode.style.border = '2px solid #ffeb3b'
+      bgNode.style.zIndex = '-1'
+      
+      // 复制公式内容
+      mathHighlight.innerHTML = mathElement.outerHTML
+      mathHighlight.appendChild(bgNode)
+      
+      // 替换原公式
+      mathElement.parentNode.replaceChild(mathHighlight, mathElement)
+    } else {
+      // 处理普通文本高亮
+      try {
+        // 创建高亮容器
+        const highlightContainer = document.createElement('span')
+        highlightContainer.className = 'text-highlight-container'
+        highlightContainer.dataset.id = highlightId
+        highlightContainer.style.position = 'relative'
+        highlightContainer.style.display = 'inline'
+        
+        // 创建背景节点
+        const bgNode = document.createElement('span')
+        bgNode.className = 'highlight-bg'
+        bgNode.style.position = 'absolute'
+        bgNode.style.top = '0'
+        bgNode.style.left = '0'
+        bgNode.style.right = '0'
+        bgNode.style.bottom = '0'
+        bgNode.style.backgroundColor = 'rgba(255, 255, 204, 0.7)'
+        bgNode.style.borderRadius = '3px'
+        bgNode.style.borderBottom = '2px solid #ffeb3b'
+        bgNode.style.zIndex = '-1'
+        
+        // 复制选中内容
+        const selectedContent = range.extractContents()
+        highlightContainer.appendChild(selectedContent)
+        highlightContainer.appendChild(bgNode)
+        
+        // 插入高亮容器
+        range.insertNode(highlightContainer)
+        
+        // 重新选择文本以保持用户体验
+        const newRange = document.createRange()
+        newRange.selectNodeContents(highlightContainer)
+        sel.removeAllRanges()
+        sel.addRange(newRange)
+      } catch (e) {
+        console.error('无法创建高亮:', e)
+        ElMessage.error('无法创建高亮，请选择连续的文本')
+        return
+      }
+    }
+    
+    // 保存到数据库
+    try {
+      await axios.post('/api/knowledge/highlight', {
+        knowledge_id: selectedKnowledge.value.id,
+        section_id: sectionId,
+        highlight_id: highlightId,
+        text: selectedText.value,
+        note: noteInputContent.value,
+        start_pos: startPos,
+        end_pos: endPos,
+        start_context: startContext,
+        end_context: endContext
+      })
+      
+      // 添加到本地高亮列表
+      highlights.value.push({
+        id: highlightId,
+        text: selectedText.value,
+        note: noteInputContent.value,
+        start_pos: startPos,
+        end_pos: endPos,
+        start_context: startContext,
+        end_context: endContext
+      })
+      
+      ElMessage.success('高亮保存成功')
+    } catch (error) {
+      console.error('保存高亮失败:', error)
+      ElMessage.error('保存高亮失败，请重试')
+    }
+  }
+  
+  // 重置状态
+  isNoteInputVisible.value = false
+  noteInputContent.value = ''
+  selectedText.value = ''
+}
+
+// 取消高亮
+const cancelHighlight = () => {
+  isNoteInputVisible.value = false
+  noteInputContent.value = ''
+  selectedText.value = ''
+}
+
+// 应用高亮
+const applyHighlight = (highlight) => {
+  const sectionElement = document.querySelector('.content-section')
+  if (!sectionElement) return
+  
+  try {
+    // 创建范围
+    const range = document.createRange()
+    
+    // 定位到起始位置
+    let currentPos = 0
+    let startContainer = sectionElement
+    let startOffset = 0
+    
+    // 遍历DOM树找到正确的位置
+    const findPosition = (node, targetPos, currentPos) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        const nodeLength = node.textContent.length
+        if (currentPos + nodeLength > targetPos) {
+          startContainer = node
+          startOffset = targetPos - currentPos
+          return true
+        }
+        return currentPos + nodeLength
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          const result = findPosition(node.childNodes[i], targetPos, currentPos)
+          if (result === true) {
+            return true
+          } else if (typeof result === 'number') {
+            currentPos = result
+          }
+        }
+      }
+      return currentPos
+    }
+    
+    findPosition(sectionElement, highlight.start_pos, 0)
+    
+    // 定位到结束位置
+    let endContainer = sectionElement
+    let endOffset = 0
+    
+    findPosition(sectionElement, highlight.end_pos, 0)
+    
+    // 设置范围
+    range.setStart(startContainer, startOffset)
+    range.setEnd(endContainer, endOffset)
+    
+    // 创建高亮容器
+    const highlightContainer = document.createElement('span')
+    highlightContainer.className = 'text-highlight-container'
+    highlightContainer.dataset.id = highlight.highlight_id
+    highlightContainer.style.position = 'relative'
+    highlightContainer.style.display = 'inline'
+    
+    // 创建背景节点
+    const bgNode = document.createElement('span')
+    bgNode.className = 'highlight-bg'
+    bgNode.style.position = 'absolute'
+    bgNode.style.top = '0'
+    bgNode.style.left = '0'
+    bgNode.style.right = '0'
+    bgNode.style.bottom = '0'
+    bgNode.style.backgroundColor = 'rgba(255, 255, 204, 0.7)'
+    bgNode.style.borderRadius = '3px'
+    bgNode.style.borderBottom = '2px solid #ffeb3b'
+    bgNode.style.zIndex = '-1'
+    bgNode.style.transition = 'all 0.2s ease'
+    
+    // 复制选中内容
+    const selectedContent = range.extractContents()
+    highlightContainer.appendChild(selectedContent)
+    highlightContainer.appendChild(bgNode)
+    
+    // 插入高亮容器
+    range.insertNode(highlightContainer)
+  } catch (error) {
+    console.error('应用高亮失败:', error)
+  }
+}
+
+// 加载高亮
+const loadHighlights = async (knowledgeId) => {
+  try {
+    // 获取sectionId
+    const sectionElement = document.querySelector('.content-section')
+    let sectionId = null
+    if (sectionElement) {
+      sectionId = sectionElement.dataset.sectionId
+    }
+    
+    // 构建请求URL
+    let url = `/api/knowledge/${knowledgeId}/highlights`
+    if (sectionId) {
+      url += `?section_id=${sectionId}`
+    }
+    
+    const response = await axios.get(url)
+    highlights.value = response.data
+    
+    // 应用高亮
+    nextTick(() => {
+      highlights.value.forEach(highlight => {
+        applyHighlight(highlight)
+      })
+    })
+  } catch (error) {
+    console.error('加载高亮失败:', error)
+  }
 }
 
 // 计算知识点总数
@@ -377,7 +732,7 @@ const formatContent = (content) => {
   return md.render(content)
 }
 
-// 监听内容变化，渲染MathJax
+// 监听内容变化，渲染MathJax并加载高亮
 watch(knowledgeContent, async (newContent) => {
   if (newContent && newContent.content_sections && newContent.content_sections.length > 0) {
     // 等待DOM完全更新
@@ -390,6 +745,10 @@ watch(knowledgeContent, async (newContent) => {
       if (element) {
         await renderMathJax(element)
       }
+    }
+    // 加载高亮
+    if (selectedKnowledge.value) {
+      await loadHighlights(selectedKnowledge.value.id)
     }
   }
 }, { deep: true })
@@ -435,6 +794,13 @@ watch(() => route.query.id, (newId) => {
 
 onMounted(() => {
   fetchKnowledgeTree()
+  // 添加文本选择监听
+  document.addEventListener('mouseup', handleTextSelection)
+})
+
+onUnmounted(() => {
+  // 移除文本选择监听
+  document.removeEventListener('mouseup', handleTextSelection)
 })
 </script>
 
@@ -1016,6 +1382,96 @@ onMounted(() => {
   color: #409EFF;
   font-weight: bold;
   border-radius: 6px;
+}
+
+/* 文本高亮容器 */
+:deep(.text-highlight-container) {
+  position: relative;
+  display: inline;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:deep(.text-highlight-container:hover) {
+  z-index: 1;
+}
+
+:deep(.text-highlight-container:hover .highlight-bg) {
+  background-color: rgba(255, 235, 59, 0.8);
+  box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.5);
+}
+
+/* 公式高亮容器 */
+:deep(.formula-highlight) {
+  position: relative;
+  display: inline-block;
+  margin: 4px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+:deep(.formula-highlight:hover) {
+  z-index: 1;
+}
+
+:deep(.formula-highlight:hover .highlight-bg) {
+  background-color: rgba(255, 235, 59, 0.8);
+  box-shadow: 0 0 8px rgba(255, 235, 59, 0.6);
+}
+
+/* 高亮背景 */
+:deep(.highlight-bg) {
+  transition: all 0.2s ease;
+}
+
+/* 笔记输入框 */
+.note-input {
+  position: absolute;
+  width: 320px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  font-family: inherit;
+  animation: noteInputFadeIn 0.3s ease-out;
+}
+
+@keyframes noteInputFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.note-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.note-textarea:focus {
+  outline: none;
+  border-color: #409EFF;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.note-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 /* 响应式设计 */

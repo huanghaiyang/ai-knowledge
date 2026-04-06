@@ -19,7 +19,7 @@ async def root():
 # 数据库会话由get_db()函数自动管理，不需要额外的teardown钩子
 
 # 导入路由
-from app.api import user, knowledge, question, answer, report
+from app.api import user, knowledge, question, answer, report, highlight
 
 # 注册路由
 user.register_routes(app)
@@ -27,6 +27,7 @@ knowledge.register_routes(app)
 question.register_routes(app)
 answer.register_routes(app)
 report.register_routes(app)
+highlight.register_routes(app)
 
 if __name__ == "__main__":
     app.run(host=BACKEND_HOST, port=int(BACKEND_PORT), debug=DEBUG)

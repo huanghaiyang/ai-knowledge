@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, text
 from app.utils.database import Base, engine
 from app.models import user, knowledge, question, answer
 from app.models.content import KnowledgeContent
+from app.models.highlight import KnowledgeHighlight
 
 # 创建所有表
 Base.metadata.create_all(bind=engine)
